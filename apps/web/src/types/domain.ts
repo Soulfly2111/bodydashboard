@@ -22,6 +22,12 @@ export type Food = {
   name: string;
   brand?: string;
   category?: string;
+  barcode?: string;
+  source?: string;
+  externalId?: string;
+  importedAt?: string;
+  lastSyncedAt?: string;
+  sourcePayload?: string;
   caloriesPer100g: number;
   protein: number;
   carbs: number;

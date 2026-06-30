@@ -12,6 +12,7 @@ import { foodsRouter } from "./modules/foods/foods.routes.js";
 import { goalsRouter } from "./modules/goals/goals.routes.js";
 import { importRouter } from "./modules/import/import.routes.js";
 import { mealsRouter } from "./modules/meals/meals.routes.js";
+import { openFoodFactsRouter } from "./modules/openFoodFacts/openFoodFacts.routes.js";
 import { recipesRouter } from "./modules/recipes/recipes.routes.js";
 import { statsRouter } from "./modules/stats/stats.routes.js";
 import { waterRouter } from "./modules/water/water.routes.js";
@@ -37,6 +38,7 @@ export function createApp() {
   app.use("/api/favorites", favoritesRouter);
   app.use("/api/stats", statsRouter);
   app.use("/api/import-sources", importRouter);
+  app.use("/api/open-food-facts", openFoodFactsRouter);
   app.use(errorMiddleware);
   return app;
 }

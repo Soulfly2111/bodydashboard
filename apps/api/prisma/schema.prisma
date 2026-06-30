@@ -45,6 +45,9 @@ model Food {
   salt            Float        @default(0)
   source          String       @default("manual")
   externalId      String?
+  importedAt      DateTime?
+  lastSyncedAt    DateTime?
+  sourcePayload   String?
   isPublic        Boolean      @default(false)
   lastUsedAt      DateTime?
   createdAt       DateTime     @default(now())

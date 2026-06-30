@@ -6,7 +6,7 @@ import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { api } from "../lib/api";
 import { useApi } from "../hooks/useApi";
-import type { DayStats } from "../types/domain";
+import type { DayStats, Food } from "../types/domain";
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -17,6 +17,7 @@ export default function Dashboard() {
     bmi: null,
     goal: { calories: 2200, protein: 150, carbs: 250, fat: 70, waterMl: 2500 }
   });
+  const { data: favoriteFoods } = useApi<Food[]>("/favorites/foods", []);
   const donut = [
     { name: "Protein", value: data.totals.protein, goal: data.goal.protein, color: "#26A69A" },
     { name: "Kohlenhydrate", value: data.totals.carbs, goal: data.goal.carbs, color: "#F4B942" },
@@ -88,6 +89,18 @@ export default function Dashboard() {
         <div className="mb-4 flex items-center gap-2"><GlassWater className="text-blue-500" /><h2 className="font-bold">Wassertracker</h2></div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[250, 500, 750, 1000].map((amount) => <Button key={amount} onClick={() => addWater(amount)}>+{amount} ml</Button>)}
+        </div>
+      </Card>
+      <Card>
+        <h2 className="mb-4 font-bold">Schnelle Favoriten</h2>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {favoriteFoods.slice(0, 4).map((food) => (
+            <div key={food.id} className="rounded-lg bg-slate-100 p-3 dark:bg-slate-800">
+              <p className="truncate font-semibold">{food.name}</p>
+              <p className="text-sm text-slate-500">{food.caloriesPer100g} kcal · P {food.protein} C {food.carbs} F {food.fat}</p>
+            </div>
+          ))}
+          {!favoriteFoods.length && <p className="text-sm text-slate-500">Noch keine Favoriten gespeichert.</p>}
         </div>
       </Card>
     </div>

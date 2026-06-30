@@ -1,0 +1,3 @@
+ALTER TABLE "Food" ADD COLUMN "importedAt" DATETIME;
+ALTER TABLE "Food" ADD COLUMN "lastSyncedAt" DATETIME;
+ALTER TABLE "Food" ADD COLUMN "sourcePayload" TEXT;
