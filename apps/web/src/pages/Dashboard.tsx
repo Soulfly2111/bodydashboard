@@ -38,7 +38,7 @@ export default function Dashboard() {
         <MetricCard icon={Scale} label="Gewicht / BMI" value={data.weight?.weightKg ?? "-"} unit={data.bmi ? `kg · BMI ${data.bmi}` : "kg"} />
       </div>
       <div className="grid gap-4 xl:grid-cols-[1.25fr_.75fr]">
-        <Card className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <Card className="grid gap-x-5 gap-y-6 sm:grid-cols-2 2xl:grid-cols-3">
           <ProgressRing label="Kalorien" value={data.totals.calories} goal={data.goal.calories} color="#FF6B5F" />
           <ProgressRing label="Protein" value={data.totals.protein} goal={data.goal.protein} color="#26A69A" />
           <ProgressRing label="Kohlenhydrate" value={data.totals.carbs} goal={data.goal.carbs} color="#F4B942" />

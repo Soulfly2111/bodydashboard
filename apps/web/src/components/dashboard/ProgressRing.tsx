@@ -3,8 +3,8 @@ export function ProgressRing({ label, value, goal, color = "#26A69A" }: { label:
   const radius = 38;
   const circumference = 2 * Math.PI * radius;
   return (
-    <div className="flex items-center gap-3">
-      <svg viewBox="0 0 96 96" className="h-20 w-20 shrink-0">
+    <div className="flex min-w-0 items-center gap-3">
+      <svg viewBox="0 0 96 96" className="h-[72px] w-[72px] shrink-0 sm:h-20 sm:w-20">
         <circle cx="48" cy="48" r={radius} fill="none" stroke="currentColor" className="text-slate-200 dark:text-slate-800" strokeWidth="10" />
         <circle
           cx="48"
@@ -22,9 +22,10 @@ export function ProgressRing({ label, value, goal, color = "#26A69A" }: { label:
           {Math.round(pct)}%
         </text>
       </svg>
-      <div>
-        <p className="text-sm text-slate-500 dark:text-slate-400">{label}</p>
-        <p className="text-lg font-bold">{Math.round(value)} / {goal}</p>
+      <div className="min-w-0">
+        <p className="truncate text-sm text-slate-500 dark:text-slate-400" title={label}>{label}</p>
+        <p className="whitespace-nowrap text-lg font-bold leading-tight">{Math.round(value)}</p>
+        <p className="whitespace-nowrap text-lg font-bold leading-tight text-slate-900 dark:text-white">/ {goal}</p>
       </div>
     </div>
   );
