@@ -5,6 +5,7 @@ APP_USER=bodydashboard
 APP_ROOT=/opt/bodydashboard
 DATA_ROOT=/var/lib/bodydashboard
 ENV_ROOT=/etc/bodydashboard
+WEB_ROOT=/etc/www/bodydashboard
 
 if [[ "${EUID}" -ne 0 ]]; then
   echo "Run this script as root." >&2
@@ -12,7 +13,7 @@ if [[ "${EUID}" -ne 0 ]]; then
 fi
 
 apt-get update
-apt-get install -y ca-certificates curl git apache2
+apt-get install -y ca-certificates curl git apache2 rsync
 
 if systemctl list-unit-files nginx.service >/dev/null 2>&1; then
   systemctl stop nginx >/dev/null 2>&1 || true
@@ -26,8 +27,8 @@ fi
 
 id -u "${APP_USER}" >/dev/null 2>&1 || useradd --system --home "${APP_ROOT}" --shell /usr/sbin/nologin "${APP_USER}"
 
-mkdir -p "${APP_ROOT}/releases" "${APP_ROOT}/deploy" "${DATA_ROOT}" "${ENV_ROOT}"
-chown -R "${APP_USER}:${APP_USER}" "${APP_ROOT}" "${DATA_ROOT}"
+mkdir -p "${APP_ROOT}/releases" "${APP_ROOT}/deploy" "${DATA_ROOT}" "${ENV_ROOT}" "${WEB_ROOT}"
+chown -R "${APP_USER}:${APP_USER}" "${APP_ROOT}" "${DATA_ROOT}" "${WEB_ROOT}"
 chmod 750 "${ENV_ROOT}"
 
 if [[ ! -f "${ENV_ROOT}/bodydashboard.env" ]]; then
@@ -37,9 +38,14 @@ fi
 
 install -m 755 deploy/server/deploy-release.sh "${APP_ROOT}/deploy/deploy-release.sh"
 install -m 644 deploy/systemd/bodydashboard-api.service /etc/systemd/system/bodydashboard-api.service
-install -m 644 deploy/apache/bodydashboard.conf /etc/apache2/conf-available/bodydashboard.conf
 a2enmod proxy proxy_http rewrite headers
-a2enconf bodydashboard
+
+if [[ -f /etc/apache2/sites-available/bodydashboard.conf ]]; then
+  echo "Keeping existing /etc/apache2/sites-available/bodydashboard.conf."
+else
+  install -m 644 deploy/apache/bodydashboard.conf /etc/apache2/sites-available/bodydashboard.conf
+  a2ensite bodydashboard.conf
+fi
 
 systemctl daemon-reload
 apachectl configtest

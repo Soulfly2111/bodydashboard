@@ -38,7 +38,7 @@ const router = createBrowserRouter(
     },
     { path: "*", element: <Navigate to="/" /> }
   ],
-  { basename: import.meta.env.PROD ? "/bodydashboard" : "/" }
+  { basename: "/" }
 );
 
 if ("serviceWorker" in navigator) {
