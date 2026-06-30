@@ -1,0 +1,12 @@
+node_modules
+dist
+coverage
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+apps/api/prisma/dev.db
+apps/api/prisma/dev.db-journal
+apps/web/.vite
+apps/web/playwright-report
+apps/web/test-results

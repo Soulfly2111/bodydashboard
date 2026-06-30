@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  name         String
+  passwordHash String
+  language     String         @default("de")
+  units        String         @default("metric")
+  theme        String         @default("system")
+  heightCm     Float?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  foods        Food[]
+  meals        Meal[]
+  recipes      Recipe[]
+  weights      WeightEntry[]
+  waters       WaterEntry[]
+  goal         Goal?
+  favorites    Favorite[]
+  imports      ImportSource[]
+}
+
+model Food {
+  id              String       @id @default(cuid())
+  userId          String?
+  user            User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  brand           String?
+  category        String?
+  barcode         String?
+  caloriesPer100g Float
+  protein         Float
+  fat             Float
+  carbs           Float
+  sugar           Float        @default(0)
+  fiber           Float        @default(0)
+  salt            Float        @default(0)
+  source          String       @default("manual")
+  externalId      String?
+  isPublic        Boolean      @default(false)
+  lastUsedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  mealItems       MealItem[]
+  recipeItems     RecipeItem[]
+
+  @@unique([userId, externalId, source])
+  @@index([name])
+  @@index([barcode])
+}
+
+model Meal {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime
+  type      String
+  name      String?
+  items     MealItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([userId, date, type])
+  @@index([userId, date])
+}
+
+model MealItem {
+  id          String   @id @default(cuid())
+  mealId      String
+  meal        Meal     @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  foodId      String
+  food        Food     @relation(fields: [foodId], references: [id])
+  amount      Float
+  unit        String   @default("g")
+  servingName String?
+  createdAt   DateTime @default(now())
+}
+
+model Recipe {
+  id           String       @id @default(cuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  servings     Int          @default(1)
+  instructions String?
+  category     String?
+  source       String       @default("manual")
+  externalId   String?
+  items        RecipeItem[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([userId, externalId, source])
+}
+
+model RecipeItem {
+  id       String @id @default(cuid())
+  recipeId String
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  foodId   String
+  food     Food   @relation(fields: [foodId], references: [id])
+  amount   Float
+  unit     String @default("g")
+}
+
+model WeightEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime
+  weightKg  Float
+  createdAt DateTime @default(now())
+
+  @@unique([userId, date])
+}
+
+model WaterEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime
+  amountMl  Int
+  createdAt DateTime @default(now())
+
+  @@index([userId, date])
+}
+
+model Goal {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  calories  Int      @default(2200)
+  protein   Int      @default(150)
+  fat       Int      @default(70)
+  carbs     Int      @default(250)
+  waterMl   Int      @default(2500)
+  weightKg  Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  targetId  String
+  label     String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, type, targetId])
+}
+
+model ImportSource {
+  id                String      @id @default(cuid())
+  userId            String
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          String
+  name              String
+  baseUrl           String
+  spaceKey          String?
+  pageId            String?
+  pageTitle         String?
+  encryptedUsername String?
+  encryptedApiToken String
+  authType          String
+  mappingJson       String
+  syncMode          String      @default("UPSERT")
+  autoImportCron    String?
+  lastImportedAt    DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  logs              ImportLog[]
+}
+
+model ImportLog {
+  id            String       @id @default(cuid())
+  sourceId      String
+  source        ImportSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  recordType    String
+  status        String
+  message       String
+  importedCount Int          @default(0)
+  updatedCount  Int          @default(0)
+  skippedCount  Int          @default(0)
+  conflictCount Int          @default(0)
+  payloadJson   String?
+  createdAt     DateTime     @default(now())
+}
