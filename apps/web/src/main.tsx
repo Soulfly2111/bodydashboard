@@ -10,6 +10,7 @@ import { LoadingScreen } from "./components/ui/LoadingScreen";
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Foods = lazy(() => import("./pages/Foods"));
 const Meals = lazy(() => import("./pages/Meals"));
+const AiMeals = lazy(() => import("./pages/AiMeals"));
 const Week = lazy(() => import("./pages/Week"));
 const Goals = lazy(() => import("./pages/Goals"));
 const Weight = lazy(() => import("./pages/Weight"));
@@ -28,6 +29,7 @@ const router = createBrowserRouter(
         { index: true, element: <Dashboard /> },
         { path: "foods", element: <Foods /> },
         { path: "meals", element: <Meals /> },
+        { path: "ai-meals", element: <AiMeals /> },
         { path: "week", element: <Week /> },
         { path: "goals", element: <Goals /> },
         { path: "weight", element: <Weight /> },

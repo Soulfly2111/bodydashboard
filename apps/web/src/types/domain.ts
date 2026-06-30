@@ -46,3 +46,46 @@ export type DayStats = {
 };
 
 export type WeekDay = MacroTotals & { date: string };
+
+export type AiRecognizedMealItem = {
+  id?: string;
+  foodId?: string;
+  name: string;
+  category?: string;
+  amount: number;
+  weightGrams: number;
+  servingName?: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+  sugar: number;
+  salt: number;
+  confidence: number;
+  source?: string;
+};
+
+export type AiMealAnalysis = {
+  id: string;
+  date: string;
+  mealType: string;
+  customMealTag?: string;
+  provider: string;
+  status: string;
+  mode: string;
+  confidence: number;
+  imageFileName?: string;
+  analyzedAt: string;
+  totalsJson?: string;
+  items: AiRecognizedMealItem[];
+};
+
+export type AiRecognitionSettings = {
+  mode: "AUTO" | "REVIEW_REQUIRED" | "ALWAYS_EDIT";
+  minConfidence: number;
+  storeImages: boolean;
+  deleteAfterAnalysis: boolean;
+  linkImageToMeal: boolean;
+  provider: "local" | "openai" | "gemini" | "anthropic" | "azure_openai" | "ollama";
+};

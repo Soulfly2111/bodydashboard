@@ -1,4 +1,4 @@
-import { Activity, Apple, CalendarDays, DatabaseZap, Droplet, Dumbbell, Home, Moon, Scale, Settings, Soup, Sun } from "lucide-react";
+import { Activity, Apple, CalendarDays, Camera, DatabaseZap, Droplet, Dumbbell, Home, Moon, Scale, Settings, Soup, Sun } from "lucide-react";
 import { NavLink, Navigate, Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { cn } from "../../lib/cn";
@@ -8,6 +8,7 @@ const nav = [
   { to: "/", label: "Dashboard", icon: Home },
   { to: "/foods", label: "Lebensmittel", icon: Apple },
   { to: "/meals", label: "Mahlzeiten", icon: Soup },
+  { to: "/ai-meals", label: "Foto-KI", icon: Camera },
   { to: "/week", label: "Woche", icon: CalendarDays },
   { to: "/goals", label: "Ziele", icon: Dumbbell },
   { to: "/weight", label: "Gewicht", icon: Scale },

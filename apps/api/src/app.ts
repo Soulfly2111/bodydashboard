@@ -6,6 +6,7 @@ import { pinoHttp } from "pino-http";
 import { env } from "./config/env.js";
 import { logger } from "./config/logger.js";
 import { errorMiddleware } from "./middleware/error.js";
+import { aiMealsRouter } from "./modules/aiMeals/aiMeals.routes.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { favoritesRouter } from "./modules/favorites/favorites.routes.js";
 import { foodsRouter } from "./modules/foods/foods.routes.js";
@@ -22,7 +23,7 @@ export function createApp() {
   const app = express();
   app.use(helmet());
   app.use(cors({ origin: env.WEB_ORIGIN, credentials: true }));
-  app.use(express.json({ limit: "1mb" }));
+  app.use(express.json({ limit: "12mb" }));
   app.use(pinoHttp({ logger }));
   app.use(rateLimit({ windowMs: 60_000, limit: 120 }));
 
@@ -39,6 +40,7 @@ export function createApp() {
   app.use("/api/stats", statsRouter);
   app.use("/api/import-sources", importRouter);
   app.use("/api/open-food-facts", openFoodFactsRouter);
+  app.use("/api/ai-meals", aiMealsRouter);
   app.use(errorMiddleware);
   return app;
 }

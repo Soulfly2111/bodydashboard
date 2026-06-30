@@ -26,6 +26,8 @@ model User {
   goal         Goal?
   favorites    Favorite[]
   imports      ImportSource[]
+  aiSettings   AiRecognitionSetting?
+  aiAnalyses   AiMealAnalysis[]
 }
 
 model Food {
@@ -68,6 +70,7 @@ model Meal {
   type      String
   name      String?
   items     MealItem[]
+  aiAnalyses AiMealAnalysis[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
@@ -197,4 +200,71 @@ model ImportLog {
   conflictCount Int          @default(0)
   payloadJson   String?
   createdAt     DateTime     @default(now())
+}
+
+model AiRecognitionSetting {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode                String   @default("REVIEW_REQUIRED")
+  minConfidence       Int      @default(90)
+  storeImages         Boolean  @default(false)
+  deleteAfterAnalysis Boolean  @default(true)
+  linkImageToMeal     Boolean  @default(false)
+  provider            String   @default("local")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model AiMealAnalysis {
+  id                String               @id @default(cuid())
+  userId            String
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealId            String?
+  meal              Meal?                @relation(fields: [mealId], references: [id], onDelete: SetNull)
+  date              DateTime
+  mealType          String
+  customMealTag     String?
+  provider          String
+  status            String               @default("DRAFT")
+  mode              String               @default("REVIEW_REQUIRED")
+  confidence        Int                  @default(0)
+  imagePath         String?
+  imageFileName     String?
+  imageMimeType     String?
+  imageSha256       String?
+  rawResultJson     String?
+  manualChangesJson String?
+  totalsJson        String?
+  analyzedAt        DateTime             @default(now())
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  items             AiMealAnalysisItem[]
+
+  @@index([userId, date])
+  @@index([userId, status])
+}
+
+model AiMealAnalysisItem {
+  id            String         @id @default(cuid())
+  analysisId    String
+  analysis      AiMealAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  foodId        String?
+  name          String
+  category      String?
+  amount        Float
+  weightGrams   Float
+  servingName   String?
+  calories      Float
+  protein       Float
+  carbs         Float
+  fat           Float
+  fiber         Float          @default(0)
+  sugar         Float          @default(0)
+  salt          Float          @default(0)
+  confidence    Int
+  source        String         @default("ai_estimate")
+  thumbnailPath String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
