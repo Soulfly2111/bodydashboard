@@ -1,13 +1,13 @@
 {
   "name": "Bodydashboard",
   "short_name": "Bodydash",
-  "start_url": "/",
+  "start_url": "/bodydashboard/",
   "display": "standalone",
   "background_color": "#f8fafc",
   "theme_color": "#0f172a",
   "icons": [
     {
-      "src": "/icon.svg",
+      "src": "icon.svg",
       "sizes": "any",
       "type": "image/svg+xml"
     }

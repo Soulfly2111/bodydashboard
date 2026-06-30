@@ -18,28 +18,31 @@ const Import = lazy(() => import("./pages/Import"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Login = lazy(() => import("./pages/Login"));
 
-const router = createBrowserRouter([
-  { path: "/login", element: <Login /> },
-  {
-    path: "/",
-    element: <AppShell />,
-    children: [
-      { index: true, element: <Dashboard /> },
-      { path: "foods", element: <Foods /> },
-      { path: "meals", element: <Meals /> },
-      { path: "week", element: <Week /> },
-      { path: "goals", element: <Goals /> },
-      { path: "weight", element: <Weight /> },
-      { path: "recipes", element: <Recipes /> },
-      { path: "import", element: <Import /> },
-      { path: "settings", element: <Settings /> }
-    ]
-  },
-  { path: "*", element: <Navigate to="/" /> }
-]);
+const router = createBrowserRouter(
+  [
+    { path: "/login", element: <Login /> },
+    {
+      path: "/",
+      element: <AppShell />,
+      children: [
+        { index: true, element: <Dashboard /> },
+        { path: "foods", element: <Foods /> },
+        { path: "meals", element: <Meals /> },
+        { path: "week", element: <Week /> },
+        { path: "goals", element: <Goals /> },
+        { path: "weight", element: <Weight /> },
+        { path: "recipes", element: <Recipes /> },
+        { path: "import", element: <Import /> },
+        { path: "settings", element: <Settings /> }
+      ]
+    },
+    { path: "*", element: <Navigate to="/" /> }
+  ],
+  { basename: import.meta.env.PROD ? "/bodydashboard" : "/" }
+);
 
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+  navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => undefined);
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

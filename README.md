@@ -46,7 +46,7 @@ Falls `prisma migrate dev` auf einer Windows-Maschine ohne Detailausgabe mit `Sc
 
 ## Deployment
 
-Der Produktionsprozess für [`Soulfly2111/bodydashboard`](https://github.com/Soulfly2111/bodydashboard) und den Server `185.207.107.160` liegt in [DEPLOYMENT.md](./DEPLOYMENT.md). Enthalten sind GitHub Actions, Server-Bootstrap, systemd-Service und Nginx-Konfiguration.
+Der Produktionsprozess für [`Soulfly2111/bodydashboard`](https://github.com/Soulfly2111/bodydashboard) und den Server `185.207.107.160` liegt in [DEPLOYMENT.md](./DEPLOYMENT.md). Enthalten sind GitHub Actions, Server-Bootstrap, systemd-Service und Apache-Reverse-Proxy-Konfiguration.
 
 ## Architektur
 

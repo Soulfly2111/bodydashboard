@@ -1,11 +1,12 @@
 # Bodydashboard Deployment
 
-Ziel: Deployment von GitHub [`Soulfly2111/bodydashboard`](https://github.com/Soulfly2111/bodydashboard) auf den Server `185.207.107.160`.
+Ziel: Deployment von GitHub [`Soulfly2111/bodydashboard`](https://github.com/Soulfly2111/bodydashboard) auf den Server `185.207.107.160` mit bestehendem Apache.
 
 ## Architektur
 
-- Nginx serviert das React-Frontend aus `/opt/bodydashboard/current/apps/web/dist`.
-- Nginx proxyt `/api/*` an die lokale Express API auf `127.0.0.1:4000`.
+- Apache bleibt auf Port `80`.
+- Apache serviert das React-Frontend unter `/bodydashboard/` aus `/opt/bodydashboard/current/apps/web/dist`.
+- Apache proxyt `/bodydashboard/api/*` an die lokale Express API auf `127.0.0.1:4000/api/*`.
 - Die API läuft als systemd-Service `bodydashboard-api`.
 - SQLite liegt persistent unter `/var/lib/bodydashboard/bodydashboard.db`.
 - Releases liegen versioniert unter `/opt/bodydashboard/releases/<timestamp>`.
@@ -15,7 +16,9 @@ Ziel: Deployment von GitHub [`Soulfly2111/bodydashboard`](https://github.com/Sou
 Auf dem Server als `root`:
 
 ```bash
-git clone https://github.com/Soulfly2111/bodydashboard.git /tmp/bodydashboard-bootstrap
+cd /tmp
+rm -rf bodydashboard-bootstrap
+git clone -b main https://github.com/Soulfly2111/bodydashboard.git /tmp/bodydashboard-bootstrap
 cd /tmp/bodydashboard-bootstrap
 bash deploy/server/bootstrap-server.sh
 nano /etc/bodydashboard/bodydashboard.env
@@ -35,8 +38,14 @@ ENCRYPTION_KEY=<32-plus-random-characters>
 Danach:
 
 ```bash
-systemctl daemon-reload
-systemctl status nginx
+apachectl configtest
+systemctl reload apache2
+```
+
+Die App ist nach erfolgreichem Deployment erreichbar unter:
+
+```text
+http://185.207.107.160/bodydashboard/
 ```
 
 ## GitHub Secrets
@@ -70,13 +79,21 @@ Auf dem Server:
 ls -1 /opt/bodydashboard/releases
 ln -sfn /opt/bodydashboard/releases/<release-id> /opt/bodydashboard/current
 systemctl restart bodydashboard-api
-systemctl reload nginx
+systemctl reload apache2
 ```
 
 ## Logs
 
 ```bash
 journalctl -u bodydashboard-api -f
-tail -f /var/log/nginx/access.log
-tail -f /var/log/nginx/error.log
+tail -f /var/log/apache2/access.log
+tail -f /var/log/apache2/error.log
+```
+
+## Apache-Konfiguration prüfen
+
+```bash
+apachectl configtest
+apache2ctl -M | grep -E 'proxy|rewrite|headers'
+cat /etc/apache2/conf-enabled/bodydashboard.conf
 ```

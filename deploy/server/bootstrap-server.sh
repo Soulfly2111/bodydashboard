@@ -12,7 +12,12 @@ if [[ "${EUID}" -ne 0 ]]; then
 fi
 
 apt-get update
-apt-get install -y ca-certificates curl git nginx
+apt-get install -y ca-certificates curl git apache2
+
+if systemctl list-unit-files nginx.service >/dev/null 2>&1; then
+  systemctl stop nginx >/dev/null 2>&1 || true
+  systemctl disable nginx >/dev/null 2>&1 || true
+fi
 
 if ! command -v node >/dev/null 2>&1; then
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
@@ -32,13 +37,13 @@ fi
 
 install -m 755 deploy/server/deploy-release.sh "${APP_ROOT}/deploy/deploy-release.sh"
 install -m 644 deploy/systemd/bodydashboard-api.service /etc/systemd/system/bodydashboard-api.service
-install -m 644 deploy/nginx/bodydashboard.conf /etc/nginx/sites-available/bodydashboard.conf
-ln -sfn /etc/nginx/sites-available/bodydashboard.conf /etc/nginx/sites-enabled/bodydashboard.conf
-rm -f /etc/nginx/sites-enabled/default
+install -m 644 deploy/apache/bodydashboard.conf /etc/apache2/conf-available/bodydashboard.conf
+a2enmod proxy proxy_http rewrite headers
+a2enconf bodydashboard
 
 systemctl daemon-reload
-nginx -t
-systemctl enable nginx
-systemctl restart nginx
+apachectl configtest
+systemctl enable apache2
+systemctl reload apache2
 
 echo "Bootstrap complete. Configure ${ENV_ROOT}/bodydashboard.env and GitHub Secrets, then push to main."
