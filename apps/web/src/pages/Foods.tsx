@@ -142,6 +142,26 @@ export default function Foods() {
           <Button><Search size={18} />Suchen</Button>
         </form>
 
+        {selected && (
+          <div className="mt-4 rounded-lg border border-mint/40 bg-mint/5 p-4">
+            <h2 className="mb-4 font-bold">Produkt prüfen und übernehmen</h2>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Input placeholder="Name" value={selected.name} onChange={(e) => setSelected({ ...selected, name: e.target.value })} />
+              <Input placeholder="Hersteller" value={selected.brand ?? ""} onChange={(e) => setSelected({ ...selected, brand: e.target.value })} />
+              <Input placeholder="Kategorie" value={selected.category ?? ""} onChange={(e) => setSelected({ ...selected, category: e.target.value })} />
+              <Input placeholder="Portion in g" type="number" value={portion} onChange={(e) => setPortion(Number(e.target.value))} />
+              {(["caloriesPer100g", "protein", "carbs", "fat", "fiber", "sugar", "salt"] as const).map((key) => <Input key={key} type="number" step="0.1" placeholder={key} value={selected[key]} onChange={(e) => setSelected({ ...selected, [key]: Number(e.target.value) })} />)}
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-4">
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={favorite} onChange={(e) => setFavorite(e.target.checked)} />Als Favorit speichern</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={addToMeal} onChange={(e) => setAddToMeal(e.target.checked)} />Direkt zu Mahlzeit hinzufügen</label>
+              {addToMeal && <select className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-800 dark:bg-slate-950" value={mealType} onChange={(e) => setMealType(e.target.value)}><option value="BREAKFAST">Frühstück</option><option value="LUNCH">Mittagessen</option><option value="DINNER">Abendessen</option><option value="SNACK">Snack</option></select>}
+              <Button type="button" onClick={importOpenFoodFactsProduct}>Speichern</Button>
+              <Button type="button" className="bg-slate-200 text-ink dark:bg-slate-800 dark:text-white" onClick={() => setSelected(null)}>Abbrechen</Button>
+            </div>
+          </div>
+        )}
+
         <div className="mt-4 grid gap-3 xl:grid-cols-2">
           {offResults.map((product) => (
             <div key={product.id} className="grid gap-3 rounded-lg border border-slate-200 p-3 dark:border-slate-800 sm:grid-cols-[88px_1fr_auto]">
@@ -154,31 +174,11 @@ export default function Foods() {
                 <p className="mt-1 text-sm text-slate-500">{product.caloriesPer100g} kcal · P {product.protein} C {product.carbs} F {product.fat} · Zucker {product.sugar} · Salz {product.salt}</p>
                 <p className="mt-1 text-sm text-slate-500">Ballaststoffe {product.fiber} · Nutri-Score {product.nutriScore || "-"}</p>
               </div>
-              <Button className="self-center" onClick={() => { setSelected(product); setPortion(100); }}><Check size={18} />Übernehmen</Button>
+              <Button type="button" className="self-center" onClick={() => { setSelected(product); setPortion(100); }}><Check size={18} />Übernehmen</Button>
             </div>
           ))}
         </div>
       </Card>
-
-      {selected && (
-        <Card>
-          <h2 className="mb-4 font-bold">Produkt prüfen und übernehmen</h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Input placeholder="Name" value={selected.name} onChange={(e) => setSelected({ ...selected, name: e.target.value })} />
-            <Input placeholder="Hersteller" value={selected.brand ?? ""} onChange={(e) => setSelected({ ...selected, brand: e.target.value })} />
-            <Input placeholder="Kategorie" value={selected.category ?? ""} onChange={(e) => setSelected({ ...selected, category: e.target.value })} />
-            <Input placeholder="Portion in g" type="number" value={portion} onChange={(e) => setPortion(Number(e.target.value))} />
-            {(["caloriesPer100g", "protein", "carbs", "fat", "fiber", "sugar", "salt"] as const).map((key) => <Input key={key} type="number" step="0.1" placeholder={key} value={selected[key]} onChange={(e) => setSelected({ ...selected, [key]: Number(e.target.value) })} />)}
-          </div>
-          <div className="mt-4 flex flex-wrap items-center gap-4">
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={favorite} onChange={(e) => setFavorite(e.target.checked)} />Als Favorit speichern</label>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={addToMeal} onChange={(e) => setAddToMeal(e.target.checked)} />Direkt zu Mahlzeit hinzufügen</label>
-            {addToMeal && <select className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-800 dark:bg-slate-950" value={mealType} onChange={(e) => setMealType(e.target.value)}><option value="BREAKFAST">Frühstück</option><option value="LUNCH">Mittagessen</option><option value="DINNER">Abendessen</option><option value="SNACK">Snack</option></select>}
-            <Button onClick={importOpenFoodFactsProduct}>Speichern</Button>
-            <Button className="bg-slate-200 text-ink dark:bg-slate-800 dark:text-white" onClick={() => setSelected(null)}>Abbrechen</Button>
-          </div>
-        </Card>
-      )}
     </div>
   );
 }
