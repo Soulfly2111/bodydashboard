@@ -64,6 +64,7 @@ export default function AiMeals() {
   }, []);
 
   const totals = useMemo(() => calculateTotals(items), [items]);
+  const recognitionSummary = useMemo(() => buildRecognitionSummary(items, analysis?.confidence), [items, analysis]);
 
   async function addFiles(files: File[]) {
     const imageFiles = files.filter((file) => file.type.startsWith("image/")).slice(0, 5 - images.length);
@@ -209,6 +210,25 @@ export default function AiMeals() {
             </div>
           </div>
           <div className="space-y-3">
+            {items.length > 0 && (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-slate-500">KI-Befund</p>
+                    <p className="mt-1 text-sm font-semibold">{recognitionSummary.title}</p>
+                  </div>
+                  <span className="rounded-lg bg-mint/12 px-3 py-1 text-sm font-semibold text-mint">{analysis?.confidence ?? recognitionSummary.confidence}% sicher</span>
+                </div>
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{recognitionSummary.description}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {items.map((item, index) => (
+                    <span key={`${item.name}-${index}`} className="rounded-lg bg-white px-3 py-1 text-xs font-medium text-slate-600 shadow-sm dark:bg-slate-950 dark:text-slate-300">
+                      {item.name || "Unbenannt"} · {item.weightGrams} g · {item.confidence}%
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
             {items.map((item, index) => (
               <div key={`${item.name}-${index}`} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
                 <div className="grid gap-3 lg:grid-cols-[1.2fr_.7fr_.7fr_.7fr_auto]">
@@ -314,6 +334,18 @@ function calculateTotals(items: AiRecognizedMealItem[]): MacroTotals {
     sugar: round((totals.sugar ?? 0) + item.sugar),
     salt: round((totals.salt ?? 0) + item.salt)
   }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, salt: 0 });
+}
+
+function buildRecognitionSummary(items: AiRecognizedMealItem[], analysisConfidence = 0) {
+  const namedItems = items.filter((item) => item.name.trim());
+  const confidence = analysisConfidence || Math.round(namedItems.reduce((sum, item) => sum + item.confidence, 0) / Math.max(namedItems.length, 1));
+  const names = namedItems.map((item) => item.name).slice(0, 4);
+  const title = names.length === 1 ? `Erkannt: ${names[0]}` : `Erkannt: ${names.join(", ")}`;
+  const lowConfidence = namedItems.filter((item) => item.confidence < 70).map((item) => item.name);
+  const description = lowConfidence.length
+    ? `Die KI vermutet ${names.join(", ")}. Bitte besonders ${lowConfidence.join(", ")} prüfen, weil die Konfidenz dort niedriger ist.`
+    : `Die KI hat ${names.join(", ")} erkannt und die Mengen sowie Nährwerte geschätzt. Prüfe die Grammangaben kurz, bevor du speicherst.`;
+  return { title, description, confidence };
 }
 
 function round(value: number) {
