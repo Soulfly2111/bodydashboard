@@ -11,7 +11,7 @@ export default function Login() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [rememberMe, setRememberMe] = useState(true);
-  const [form, setForm] = useState({ name: "Christoph", email: "Christoph", password: "Christoph@123!" });
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
 
   if (user) return <Navigate to="/" />;
 
@@ -38,7 +38,6 @@ export default function Login() {
         <Input placeholder="Passwort" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="mb-4" />
         {mode === "login" && <label className="mb-4 flex items-center gap-2 text-sm text-slate-500"><input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />Angemeldet bleiben</label>}
         <Button className="w-full">{mode === "login" ? "Einloggen" : "Konto erstellen"}</Button>
-        <p className="mt-3 text-xs text-slate-500">Admin: Heiner / Heiner@1234! · Benutzer: Christoph / Christoph@123!</p>
         <button type="button" className="mt-4 w-full text-sm text-mint" onClick={() => setMode(mode === "login" ? "register" : "login")}>
           {mode === "login" ? "Neues Konto erstellen" : "Zum Login wechseln"}
         </button>

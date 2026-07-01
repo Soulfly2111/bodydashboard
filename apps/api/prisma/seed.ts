@@ -6,6 +6,8 @@ import { startOfDay, subDays } from "date-fns";
 const prisma = new PrismaClient();
 
 async function main() {
+  await removeLegacyDemoUser();
+
   const admin = await upsertUser({
     username: "Heiner",
     email: "heiner@bodydashboard.local",
@@ -32,6 +34,10 @@ async function main() {
   });
 
   await seedChristophData(christoph.id);
+}
+
+async function removeLegacyDemoUser() {
+  await prisma.user.deleteMany({ where: { email: "demo@example.com" } });
 }
 
 async function upsertUser(input: { username: string; email: string; name: string; firstName: string; password: string; role: string }) {
