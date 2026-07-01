@@ -69,4 +69,7 @@ jobs:
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           script: |
             set -euo pipefail
+            TMP_DEPLOY_DIR="$(mktemp -d)"
+            tar -xzf /tmp/bodydashboard/bodydashboard.tar.gz -C "${TMP_DEPLOY_DIR}" ./deploy/server/deploy-release.sh
+            sudo install -m 755 "${TMP_DEPLOY_DIR}/deploy/server/deploy-release.sh" /opt/bodydashboard/deploy/deploy-release.sh
             sudo /opt/bodydashboard/deploy/deploy-release.sh /tmp/bodydashboard/bodydashboard.tar.gz

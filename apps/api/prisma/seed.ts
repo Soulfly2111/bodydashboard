@@ -26,12 +26,8 @@ async function main() {
     role: "USER"
   });
 
-  await prisma.auditLog.createMany({
-    data: [
-      { userId: admin.id, actorUserId: admin.id, action: "seed.admin_created", entityType: "User", entityId: admin.id },
-      { userId: christoph.id, actorUserId: admin.id, action: "seed.user_created", entityType: "User", entityId: christoph.id }
-    ]
-  });
+  await createSeedAuditLog(admin.id, admin.id, "seed.admin_created");
+  await createSeedAuditLog(christoph.id, admin.id, "seed.user_created");
 
   await seedChristophData(christoph.id);
 }
@@ -40,12 +36,25 @@ async function removeLegacyDemoUser() {
   await prisma.user.deleteMany({ where: { email: "demo@example.com" } });
 }
 
+async function createSeedAuditLog(userId: string, actorUserId: string, action: string) {
+  const existing = await prisma.auditLog.findFirst({ where: { userId, action } });
+  if (!existing) {
+    await prisma.auditLog.create({ data: { userId, actorUserId, action, entityType: "User", entityId: userId } });
+  }
+}
+
 async function upsertUser(input: { username: string; email: string; name: string; firstName: string; password: string; role: string }) {
+  const existing = await prisma.user.findUnique({ where: { email: input.email } });
+  if (existing) {
+    return prisma.user.update({
+      where: { id: existing.id },
+      data: { username: input.username, role: input.role, status: "ACTIVE", name: input.name, firstName: input.firstName }
+    });
+  }
+
   const passwordHash = await bcrypt.hash(input.password, 12);
-  return prisma.user.upsert({
-    where: { email: input.email },
-    update: { username: input.username, role: input.role, status: "ACTIVE", passwordHash },
-    create: {
+  return prisma.user.create({
+    data: {
       username: input.username,
       email: input.email,
       name: input.name,
@@ -117,19 +126,22 @@ async function seedChristophData(userId: string) {
   await prisma.recipeItem.deleteMany({ where: { recipeId: recipe.id } });
   await prisma.recipeItem.createMany({ data: [{ recipeId: recipe.id, foodId: foods[3].id, amount: 300 }, { recipeId: recipe.id, foodId: foods[4].id, amount: 300 }, { recipeId: recipe.id, foodId: foods[1].id, amount: 150 }] });
 
-  await prisma.aiMealAnalysis.create({
-    data: {
-      userId,
-      date: startOfDay(new Date()),
-      mealType: "LUNCH",
-      provider: "local",
-      status: "SAVED",
-      mode: "REVIEW_REQUIRED",
-      confidence: 78,
-      totalsJson: JSON.stringify({ calories: 620, protein: 42, carbs: 58, fat: 18, fiber: 6, sugar: 5, salt: 1.2 }),
-      items: { create: [{ name: "Protein Bowl", category: "Meal Prep", amount: 1, weightGrams: 420, servingName: "Schüssel", calories: 620, protein: 42, carbs: 58, fat: 18, fiber: 6, sugar: 5, salt: 1.2, confidence: 78, source: "ai_estimate" }] }
-    }
-  });
+  const existingAiAnalysis = await prisma.aiMealAnalysis.findFirst({ where: { userId, provider: "local", mealType: "LUNCH" } });
+  if (!existingAiAnalysis) {
+    await prisma.aiMealAnalysis.create({
+      data: {
+        userId,
+        date: startOfDay(new Date()),
+        mealType: "LUNCH",
+        provider: "local",
+        status: "SAVED",
+        mode: "REVIEW_REQUIRED",
+        confidence: 78,
+        totalsJson: JSON.stringify({ calories: 620, protein: 42, carbs: 58, fat: 18, fiber: 6, sugar: 5, salt: 1.2 }),
+        items: { create: [{ name: "Protein Bowl", category: "Meal Prep", amount: 1, weightGrams: 420, servingName: "Schüssel", calories: 620, protein: 42, carbs: 58, fat: 18, fiber: 6, sugar: 5, salt: 1.2, confidence: 78, source: "ai_estimate" }] }
+      }
+    });
+  }
 }
 
 main()

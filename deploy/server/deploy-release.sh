@@ -30,6 +30,7 @@ set +a
 
 cd "${RELEASE_DIR}/apps/api"
 npx prisma migrate deploy
+npm run db:seed
 chown -R "${APP_USER}:${APP_USER}" "${DATA_ROOT}"
 
 ln -sfn "${RELEASE_DIR}" "${APP_ROOT}/current"
