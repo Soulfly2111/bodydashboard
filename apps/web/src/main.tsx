@@ -16,6 +16,7 @@ const Goals = lazy(() => import("./pages/Goals"));
 const Weight = lazy(() => import("./pages/Weight"));
 const Recipes = lazy(() => import("./pages/Recipes"));
 const Import = lazy(() => import("./pages/Import"));
+const Admin = lazy(() => import("./pages/Admin"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Login = lazy(() => import("./pages/Login"));
 
@@ -35,6 +36,7 @@ const router = createBrowserRouter(
         { path: "weight", element: <Weight /> },
         { path: "recipes", element: <Recipes /> },
         { path: "import", element: <Import /> },
+        { path: "admin", element: <Admin /> },
         { path: "settings", element: <Settings /> }
       ]
     },

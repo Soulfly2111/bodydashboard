@@ -1,4 +1,4 @@
-import { Activity, Apple, CalendarDays, Camera, DatabaseZap, Droplet, Dumbbell, Home, Moon, Scale, Settings, Soup, Sun } from "lucide-react";
+import { Activity, Apple, CalendarDays, Camera, DatabaseZap, Droplet, Dumbbell, Home, Moon, Scale, Settings, Shield, Soup, Sun } from "lucide-react";
 import { NavLink, Navigate, Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { cn } from "../../lib/cn";
@@ -14,6 +14,7 @@ const nav = [
   { to: "/weight", label: "Gewicht", icon: Scale },
   { to: "/recipes", label: "Rezepte", icon: Activity },
   { to: "/import", label: "Import", icon: DatabaseZap },
+  { to: "/admin", label: "Admin", icon: Shield, adminOnly: true },
   { to: "/settings", label: "Einstellungen", icon: Settings }
 ];
 
@@ -41,7 +42,7 @@ export function AppShell() {
           </div>
         </div>
         <nav className="flex overflow-x-auto p-2 lg:block lg:space-y-1 lg:p-4">
-          {nav.map((item) => (
+          {nav.filter((item) => !item.adminOnly || user.role === "ADMIN").map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
