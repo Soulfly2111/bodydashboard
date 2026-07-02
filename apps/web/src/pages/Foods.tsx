@@ -35,6 +35,7 @@ export default function Foods() {
   const [offResults, setOffResults] = useState<OpenFoodFactsProduct[]>([]);
   const [offSearching, setOffSearching] = useState(false);
   const [offSearched, setOffSearched] = useState(false);
+  const [offError, setOffError] = useState("");
   const [selected, setSelected] = useState<OpenFoodFactsProduct | null>(null);
   const [favorite, setFavorite] = useState(true);
   const [addToMeal, setAddToMeal] = useState(false);
@@ -62,11 +63,17 @@ export default function Foods() {
     const params = new URLSearchParams(Object.entries(offQuery).filter(([, value]) => value));
     setOffSearching(true);
     setOffSearched(true);
+    setOffError("");
     setSelected(null);
     try {
       const results = await api<OpenFoodFactsProduct[]>(`/open-food-facts/search?${params.toString()}`);
       setOffResults(results);
       toast.success(`${results.length} Produkte gefunden`);
+    } catch (error) {
+      setOffResults([]);
+      const message = error instanceof Error ? error.message : "Open Food Facts Suche fehlgeschlagen";
+      setOffError(message);
+      toast.error(message);
     } finally {
       setOffSearching(false);
     }
@@ -189,7 +196,7 @@ export default function Foods() {
         </div>
         {offSearched && !offSearching && offResults.length === 0 && (
           <div className="mt-4 rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700">
-            Keine Open-Food-Facts-Produkte gefunden. Pruefe Suchbegriff, Barcode oder Land und versuche es erneut.
+            {offError || "Keine Open-Food-Facts-Produkte gefunden. Pruefe Suchbegriff, Barcode oder Land und versuche es erneut."}
           </div>
         )}
       </Card>

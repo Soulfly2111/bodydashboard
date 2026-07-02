@@ -40,6 +40,18 @@ const fields = [
 export class OpenFoodFactsService {
   private baseUrl = "https://world.openfoodfacts.org";
   private userAgent = "Bodydashboard/1.0 (https://github.com/Soulfly2111/bodydashboard)";
+  private countryHosts: Record<string, string> = {
+    de: "https://de.openfoodfacts.org",
+    deutschland: "https://de.openfoodfacts.org",
+    germany: "https://de.openfoodfacts.org",
+    at: "https://at.openfoodfacts.org",
+    austria: "https://at.openfoodfacts.org",
+    oesterreich: "https://at.openfoodfacts.org",
+    österreich: "https://at.openfoodfacts.org",
+    ch: "https://ch.openfoodfacts.org",
+    schweiz: "https://ch.openfoodfacts.org",
+    switzerland: "https://ch.openfoodfacts.org"
+  };
 
   async search(params: SearchParams) {
     if (params.barcode) {
@@ -47,24 +59,47 @@ export class OpenFoodFactsService {
       return product ? [product] : [];
     }
 
-    const url = new URL(`${this.baseUrl}/cgi/search.pl`);
+    const hosts = [...new Set([this.countryHost(params.country), this.baseUrl].filter(Boolean) as string[])];
+    let lastError: unknown;
+
+    for (const host of hosts) {
+      try {
+        const products = await this.searchHost(host, params);
+        if (products.length > 0) return products;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    if (lastError && hosts.length === 1) throw lastError;
+    return [];
+  }
+
+  private async searchHost(host: string, params: SearchParams) {
+    const url = new URL(`${host}/cgi/search.pl`);
     url.searchParams.set("json", "1");
     url.searchParams.set("page_size", "20");
     url.searchParams.set("fields", fields);
     url.searchParams.set("search_terms", params.query ?? "");
-    if (params.brand) url.searchParams.set("tagtype_0", "brands");
-    if (params.brand) url.searchParams.set("tag_contains_0", "contains");
-    if (params.brand) url.searchParams.set("tag_0", params.brand);
-    if (params.category) url.searchParams.set("tagtype_1", "categories");
-    if (params.category) url.searchParams.set("tag_contains_1", "contains");
-    if (params.category) url.searchParams.set("tag_1", params.category);
-    if (params.country) url.searchParams.set("tagtype_2", "countries");
-    if (params.country) url.searchParams.set("tag_contains_2", "contains");
-    if (params.country) url.searchParams.set("tag_2", params.country);
     if (params.language) url.searchParams.set("lc", params.language);
+
+    let tagIndex = 0;
+    if (params.brand) {
+      url.searchParams.set(`tagtype_${tagIndex}`, "brands");
+      url.searchParams.set(`tag_contains_${tagIndex}`, "contains");
+      url.searchParams.set(`tag_${tagIndex}`, params.brand);
+      tagIndex += 1;
+    }
+    if (params.category) {
+      url.searchParams.set(`tagtype_${tagIndex}`, "categories");
+      url.searchParams.set(`tag_contains_${tagIndex}`, "contains");
+      url.searchParams.set(`tag_${tagIndex}`, params.category);
+    }
 
     const response = await fetch(url, { headers: { "User-Agent": this.userAgent } });
     if (!response.ok) throw new Error(`Open Food Facts search failed: ${response.status}`);
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) throw new Error("Open Food Facts search did not return JSON");
     const payload = await response.json() as { products?: unknown[] };
     return (payload.products ?? []).map((product) => this.normalize(product)).filter(Boolean) as OpenFoodFactsProduct[];
   }
@@ -112,5 +147,10 @@ export class OpenFoodFactsService {
   private optional(value: unknown) {
     const text = String(value ?? "").trim();
     return text || undefined;
+  }
+
+  private countryHost(country?: string) {
+    const key = String(country ?? "").trim().toLowerCase();
+    return key ? this.countryHosts[key] : undefined;
   }
 }
