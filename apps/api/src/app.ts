@@ -13,6 +13,7 @@ import { favoritesRouter } from "./modules/favorites/favorites.routes.js";
 import { foodsRouter } from "./modules/foods/foods.routes.js";
 import { goalsRouter } from "./modules/goals/goals.routes.js";
 import { importRouter } from "./modules/import/import.routes.js";
+import { integrationsRouter } from "./modules/integrations/integrations.routes.js";
 import { mealsRouter } from "./modules/meals/meals.routes.js";
 import { openFoodFactsRouter } from "./modules/openFoodFacts/openFoodFacts.routes.js";
 import { recipesRouter } from "./modules/recipes/recipes.routes.js";
@@ -40,6 +41,7 @@ export function createApp() {
   app.use("/api/favorites", favoritesRouter);
   app.use("/api/stats", statsRouter);
   app.use("/api/import-sources", importRouter);
+  app.use("/api/integrations", integrationsRouter);
   app.use("/api/open-food-facts", openFoodFactsRouter);
   app.use("/api/ai-meals", aiMealsRouter);
   app.use("/api/admin", adminRouter);

@@ -41,9 +41,31 @@ model User {
   sessions     UserSession[]
   passwordResetTokens PasswordResetToken[]
   auditLogs     AuditLog[]
+  integrationApiKeys IntegrationApiKey[]
 
   @@index([role])
   @@index([status])
+}
+
+model IntegrationApiKey {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  provider    String    @default("openclaw")
+  keyHash     String    @unique
+  keyPrefix   String
+  keyLast4    String
+  scopesJson  String
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([provider])
+  @@index([keyPrefix])
 }
 
 model Food {
