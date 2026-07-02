@@ -33,6 +33,8 @@ export default function Foods() {
   const [form, setForm] = useState(empty);
   const [offQuery, setOffQuery] = useState({ q: "", brand: "", category: "", barcode: "", country: "Germany", language: "de" });
   const [offResults, setOffResults] = useState<OpenFoodFactsProduct[]>([]);
+  const [offSearching, setOffSearching] = useState(false);
+  const [offSearched, setOffSearched] = useState(false);
   const [selected, setSelected] = useState<OpenFoodFactsProduct | null>(null);
   const [favorite, setFavorite] = useState(true);
   const [addToMeal, setAddToMeal] = useState(false);
@@ -58,9 +60,16 @@ export default function Foods() {
   async function searchOpenFoodFacts(event: FormEvent) {
     event.preventDefault();
     const params = new URLSearchParams(Object.entries(offQuery).filter(([, value]) => value));
-    const results = await api<OpenFoodFactsProduct[]>(`/open-food-facts/search?${params.toString()}`);
-    setOffResults(results);
-    toast.success(`${results.length} Produkte gefunden`);
+    setOffSearching(true);
+    setOffSearched(true);
+    setSelected(null);
+    try {
+      const results = await api<OpenFoodFactsProduct[]>(`/open-food-facts/search?${params.toString()}`);
+      setOffResults(results);
+      toast.success(`${results.length} Produkte gefunden`);
+    } finally {
+      setOffSearching(false);
+    }
   }
 
   async function importOpenFoodFactsProduct() {
@@ -139,7 +148,7 @@ export default function Foods() {
           <Input placeholder="Kategorie" value={offQuery.category} onChange={(e) => setOffQuery({ ...offQuery, category: e.target.value })} />
           <Input placeholder="Barcode / EAN" value={offQuery.barcode} onChange={(e) => setOffQuery({ ...offQuery, barcode: e.target.value })} />
           <Input placeholder="Land" value={offQuery.country} onChange={(e) => setOffQuery({ ...offQuery, country: e.target.value })} />
-          <Button><Search size={18} />Suchen</Button>
+          <Button disabled={offSearching}><Search size={18} />{offSearching ? "Sucht..." : "Suchen"}</Button>
         </form>
 
         {selected && (
@@ -178,6 +187,11 @@ export default function Foods() {
             </div>
           ))}
         </div>
+        {offSearched && !offSearching && offResults.length === 0 && (
+          <div className="mt-4 rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700">
+            Keine Open-Food-Facts-Produkte gefunden. Pruefe Suchbegriff, Barcode oder Land und versuche es erneut.
+          </div>
+        )}
       </Card>
     </div>
   );
