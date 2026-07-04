@@ -1,4 +1,4 @@
-import { Check, RefreshCw, Search, Star, Trash2 } from "lucide-react";
+import { Check, Pencil, RefreshCw, Search, Star, Trash2, X } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import toast from "react-hot-toast";
 import { Button } from "../components/ui/Button";
@@ -25,12 +25,28 @@ type OpenFoodFactsProduct = {
   salt: number;
 };
 
-const empty = { name: "", brand: "", category: "", caloriesPer100g: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, salt: 0 };
+type FoodForm = {
+  name: string;
+  brand: string;
+  category: string;
+  barcode: string;
+  caloriesPer100g: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+  sugar: number;
+  salt: number;
+};
+
+const empty: FoodForm = { name: "", brand: "", category: "", barcode: "", caloriesPer100g: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, salt: 0 };
+const nutrientKeys = ["caloriesPer100g", "protein", "carbs", "fat", "fiber", "sugar", "salt"] as const;
 const today = new Date().toISOString().slice(0, 10);
 
 export default function Foods() {
   const [q, setQ] = useState("");
-  const [form, setForm] = useState(empty);
+  const [form, setForm] = useState<FoodForm>(empty);
+  const [editingFood, setEditingFood] = useState<(FoodForm & { id: string }) | null>(null);
   const [offQuery, setOffQuery] = useState({ q: "", brand: "", category: "", barcode: "", country: "Germany", language: "de" });
   const [offResults, setOffResults] = useState<OpenFoodFactsProduct[]>([]);
   const [offSearching, setOffSearching] = useState(false);
@@ -44,6 +60,12 @@ export default function Foods() {
   const { data, reload } = useApi<Food[]>(`/foods?q=${encodeURIComponent(q)}`, []);
   const { data: favoriteFoods, reload: reloadFavorites } = useApi<Food[]>("/favorites/foods", []);
 
+  const favoriteFoodIds = new Set(favoriteFoods.map((food) => food.id));
+  const prioritizedFoods = [
+    ...favoriteFoods,
+    ...data.filter((food) => !favoriteFoodIds.has(food.id))
+  ];
+
   async function createFood(event: FormEvent) {
     event.preventDefault();
     await api("/foods", { method: "POST", body: JSON.stringify(form) });
@@ -52,10 +74,30 @@ export default function Foods() {
     await reload();
   }
 
+  async function updateFood() {
+    if (!editingFood) return;
+    const { id, ...payload } = editingFood;
+    await api(`/foods/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+    setEditingFood(null);
+    toast.success("Lebensmittel geändert");
+    await Promise.all([reload(), reloadFavorites()]);
+  }
+
   async function remove(id: string) {
     await api(`/foods/${id}`, { method: "DELETE" });
     toast.success("Gelöscht", { icon: <Trash2 size={16} /> });
-    await reload();
+    await Promise.all([reload(), reloadFavorites()]);
+  }
+
+  async function toggleFavorite(food: Food) {
+    if (favoriteFoodIds.has(food.id)) {
+      await api(`/favorites/foods/${food.id}`, { method: "DELETE" });
+      toast.success("Favorit entfernt");
+    } else {
+      await api("/favorites", { method: "POST", body: JSON.stringify({ type: "FOOD", targetId: food.id, label: food.name }) });
+      toast.success("Favorit gespeichert");
+    }
+    await reloadFavorites();
   }
 
   async function searchOpenFoodFacts(event: FormEvent) {
@@ -100,10 +142,22 @@ export default function Foods() {
     await reload();
   }
 
-  const prioritizedFoods = [
-    ...favoriteFoods,
-    ...data.filter((food) => !favoriteFoods.some((favoriteFood) => favoriteFood.id === food.id))
-  ];
+  function startEdit(food: Food) {
+    setEditingFood({
+      id: food.id,
+      name: food.name,
+      brand: food.brand ?? "",
+      category: food.category ?? "",
+      barcode: food.barcode ?? "",
+      caloriesPer100g: food.caloriesPer100g,
+      protein: food.protein,
+      carbs: food.carbs,
+      fat: food.fat,
+      fiber: food.fiber,
+      sugar: food.sugar,
+      salt: food.salt
+    });
+  }
 
   return (
     <div className="space-y-4">
@@ -112,8 +166,13 @@ export default function Foods() {
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {favoriteFoods.map((food) => (
             <div key={food.id} className="rounded-lg bg-slate-100 p-3 text-sm dark:bg-slate-800">
-              <p className="truncate font-semibold">{food.name}</p>
-              <p className="text-slate-500">{food.caloriesPer100g} kcal · P {food.protein} C {food.carbs} F {food.fat}</p>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">{food.name}</p>
+                  <p className="text-slate-500">{food.caloriesPer100g} kcal · P {food.protein} C {food.carbs} F {food.fat}</p>
+                </div>
+                <button aria-label="Favorit entfernen" className="text-amber" onClick={() => toggleFavorite(food)}><Star size={18} fill="currentColor" /></button>
+              </div>
             </div>
           ))}
           {!favoriteFoods.length && <p className="text-sm text-slate-500">Noch keine Favoriten gespeichert.</p>}
@@ -125,8 +184,14 @@ export default function Foods() {
           <h2 className="mb-4 font-bold">Eigenes Lebensmittel</h2>
           <form onSubmit={createFood} className="grid gap-3">
             <Input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-            <div className="grid gap-3 sm:grid-cols-2"><Input placeholder="Hersteller" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} /><Input placeholder="Kategorie" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} /></div>
-            <div className="grid gap-3 sm:grid-cols-2">{(["caloriesPer100g", "protein", "carbs", "fat", "fiber", "sugar", "salt"] as const).map((key) => <Input key={key} type="number" step="0.1" placeholder={key} value={form[key]} onChange={(e) => setForm({ ...form, [key]: Number(e.target.value) })} />)}</div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input placeholder="Hersteller" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} />
+              <Input placeholder="Kategorie" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+            </div>
+            <Input placeholder="Barcode / EAN" value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              {nutrientKeys.map((key) => <Input key={key} type="number" step="0.1" placeholder={key} value={form[key]} onChange={(e) => setForm({ ...form, [key]: Number(e.target.value) })} />)}
+            </div>
             <Button>Speichern</Button>
           </form>
         </Card>
@@ -136,10 +201,37 @@ export default function Foods() {
           <div className="space-y-3">
             {prioritizedFoods.map((food) => {
               const isOff = food.source === "open_food_facts";
+              const isFavorite = favoriteFoodIds.has(food.id);
+              const isEditing = editingFood?.id === food.id;
               return (
-                <div key={food.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-                  <div className="min-w-0"><p className="truncate font-semibold">{food.name}</p><p className="text-sm text-slate-500">{food.brand || "Eigenes Lebensmittel"} · {food.caloriesPer100g} kcal · P {food.protein} C {food.carbs} F {food.fat}</p></div>
-                  <div className="flex shrink-0 gap-2">{isOff && <button aria-label="Synchronisieren" onClick={() => syncFood(food.id)}><RefreshCw size={18} /></button>}<button aria-label="Favorit" onClick={() => api("/favorites", { method: "POST", body: JSON.stringify({ type: "FOOD", targetId: food.id, label: food.name }) }).then(() => reloadFavorites())}><Star size={18} /></button><button aria-label="Löschen" onClick={() => remove(food.id)}><Trash2 size={18} /></button></div>
+                <div key={food.id} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+                  {isEditing && editingFood ? (
+                    <div className="grid min-w-0 gap-3">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Input placeholder="Name" value={editingFood.name} onChange={(e) => setEditingFood({ ...editingFood, name: e.target.value })} />
+                        <Input placeholder="Hersteller" value={editingFood.brand} onChange={(e) => setEditingFood({ ...editingFood, brand: e.target.value })} />
+                        <Input placeholder="Kategorie" value={editingFood.category} onChange={(e) => setEditingFood({ ...editingFood, category: e.target.value })} />
+                        <Input placeholder="Barcode / EAN" value={editingFood.barcode} onChange={(e) => setEditingFood({ ...editingFood, barcode: e.target.value })} />
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        {nutrientKeys.map((key) => <Input key={key} type="number" step="0.1" placeholder={key} value={editingFood[key]} onChange={(e) => setEditingFood({ ...editingFood, [key]: Number(e.target.value) })} />)}
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <button aria-label="Speichern" className="grid h-10 w-10 place-items-center rounded-lg bg-mint text-slate-950" onClick={updateFood}><Check size={18} /></button>
+                        <button aria-label="Abbrechen" className="grid h-10 w-10 place-items-center rounded-lg bg-slate-200 dark:bg-slate-700" onClick={() => setEditingFood(null)}><X size={18} /></button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0"><p className="truncate font-semibold">{food.name}</p><p className="text-sm text-slate-500">{food.brand || "Eigenes Lebensmittel"} · {food.caloriesPer100g} kcal · P {food.protein} C {food.carbs} F {food.fat}</p></div>
+                      <div className="flex shrink-0 gap-2">
+                        {isOff && <button aria-label="Synchronisieren" onClick={() => syncFood(food.id)}><RefreshCw size={18} /></button>}
+                        <button aria-label={isFavorite ? "Favorit entfernen" : "Favorit"} className={isFavorite ? "text-amber" : undefined} onClick={() => toggleFavorite(food)}><Star size={18} fill={isFavorite ? "currentColor" : "none"} /></button>
+                        <button aria-label="Bearbeiten" onClick={() => startEdit(food)}><Pencil size={18} /></button>
+                        <button aria-label="Löschen" onClick={() => remove(food.id)}><Trash2 size={18} /></button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -166,7 +258,7 @@ export default function Foods() {
               <Input placeholder="Hersteller" value={selected.brand ?? ""} onChange={(e) => setSelected({ ...selected, brand: e.target.value })} />
               <Input placeholder="Kategorie" value={selected.category ?? ""} onChange={(e) => setSelected({ ...selected, category: e.target.value })} />
               <Input placeholder="Portion in g" type="number" value={portion} onChange={(e) => setPortion(Number(e.target.value))} />
-              {(["caloriesPer100g", "protein", "carbs", "fat", "fiber", "sugar", "salt"] as const).map((key) => <Input key={key} type="number" step="0.1" placeholder={key} value={selected[key]} onChange={(e) => setSelected({ ...selected, [key]: Number(e.target.value) })} />)}
+              {nutrientKeys.map((key) => <Input key={key} type="number" step="0.1" placeholder={key} value={selected[key]} onChange={(e) => setSelected({ ...selected, [key]: Number(e.target.value) })} />)}
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-4">
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={favorite} onChange={(e) => setFavorite(e.target.checked)} />Als Favorit speichern</label>
@@ -196,7 +288,7 @@ export default function Foods() {
         </div>
         {offSearched && !offSearching && offResults.length === 0 && (
           <div className="mt-4 rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700">
-            {offError || "Keine Open-Food-Facts-Produkte gefunden. Pruefe Suchbegriff, Barcode oder Land und versuche es erneut."}
+            {offError || "Keine Open-Food-Facts-Produkte gefunden. Prüfe Suchbegriff, Barcode oder Land und versuche es erneut."}
           </div>
         )}
       </Card>

@@ -39,6 +39,14 @@ favoritesRouter.post(
 );
 
 favoritesRouter.delete(
+  "/foods/:foodId",
+  asyncHandler(async (req, res) => {
+    await favoriteService.deleteFood(req.user!.id, req.params.foodId);
+    res.status(204).end();
+  })
+);
+
+favoritesRouter.delete(
   "/:id",
   asyncHandler(async (req, res) => {
     await favoriteService.delete(req.user!.id, req.params.id);

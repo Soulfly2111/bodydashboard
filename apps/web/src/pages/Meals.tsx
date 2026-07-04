@@ -22,6 +22,7 @@ export default function Meals() {
   const [amount, setAmount] = useState(100);
   const [editing, setEditing] = useState<{ id: string; foodId: string; amount: number } | null>(null);
   const { data: foods } = useApi<Food[]>("/foods", []);
+  const { data: favoriteFoods } = useApi<Food[]>("/favorites/foods", []);
   const { data: meals, reload } = useApi<DayMeal[]>(`/meals/day/${selectedDate}`, []);
 
   async function add(type: MealType) {
@@ -53,6 +54,11 @@ export default function Meals() {
 
   const isToday = selectedDate === today;
   const selectedDateLabel = isToday ? "Heute" : dateFormatter.format(new Date(`${selectedDate}T12:00:00`));
+  const favoriteFoodIds = new Set(favoriteFoods.map((food) => food.id));
+  const selectableFoods = [
+    ...favoriteFoods,
+    ...foods.filter((food) => !favoriteFoodIds.has(food.id))
+  ];
   const dayTotals = meals.reduce(
     (totals, meal) => {
       meal.items.forEach((item) => {
@@ -107,7 +113,14 @@ export default function Meals() {
         <div className="grid gap-3 sm:grid-cols-[1fr_160px]">
           <select className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-800 dark:bg-slate-950" value={foodId} onChange={(e) => setFoodId(e.target.value)}>
             <option value="">Lebensmittel auswählen</option>
-            {foods.map((food) => <option key={food.id} value={food.id}>{food.name}</option>)}
+            {favoriteFoods.length > 0 && (
+              <optgroup label="Favoriten">
+                {favoriteFoods.map((food) => <option key={food.id} value={food.id}>{food.name}</option>)}
+              </optgroup>
+            )}
+            <optgroup label="Alle Lebensmittel">
+              {foods.filter((food) => !favoriteFoodIds.has(food.id)).map((food) => <option key={food.id} value={food.id}>{food.name}</option>)}
+            </optgroup>
           </select>
           <Input type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} />
         </div>
@@ -131,7 +144,7 @@ export default function Meals() {
                         <div className="grid min-w-0 gap-2">
                           <div className="grid min-w-0 gap-2 md:grid-cols-[minmax(0,1fr)_96px]">
                             <select className="min-h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-950" value={editing.foodId} onChange={(event) => setEditing({ ...editing, foodId: event.target.value })}>
-                              {foods.map((food) => <option key={food.id} value={food.id}>{food.name}</option>)}
+                              {selectableFoods.map((food) => <option key={food.id} value={food.id}>{favoriteFoodIds.has(food.id) ? "Favorit - " : ""}{food.name}</option>)}
                             </select>
                             <Input type="number" step="0.1" value={editing.amount} onChange={(event) => setEditing({ ...editing, amount: Number(event.target.value) })} />
                           </div>

@@ -26,4 +26,8 @@ export class FavoriteService {
   delete(userId: string, id: string) {
     return prisma.favorite.deleteMany({ where: { id, userId } });
   }
+
+  deleteFood(userId: string, foodId: string) {
+    return prisma.favorite.deleteMany({ where: { userId, type: "FOOD", targetId: foodId } });
+  }
 }
