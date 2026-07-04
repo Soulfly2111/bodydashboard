@@ -113,11 +113,11 @@ export default function Meals() {
         </div>
       </Card>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid items-start gap-4 xl:grid-cols-2">
         {mealTypes.map((type) => {
           const meal = meals.find((item) => item.type === type);
           return (
-            <Card key={type}>
+            <Card key={type} className="min-w-0">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <h2 className="font-bold">{labels[type]}</h2>
                 <Button onClick={() => add(type)}><Plus size={18} />Hinzufügen</Button>
@@ -128,18 +128,20 @@ export default function Meals() {
                   return (
                     <div key={item.id} className="rounded-lg bg-slate-100 p-3 text-sm dark:bg-slate-800">
                       {isEditing ? (
-                        <div className="grid gap-2 sm:grid-cols-[1fr_110px_auto] sm:items-center">
-                          <select className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-950" value={editing.foodId} onChange={(event) => setEditing({ ...editing, foodId: event.target.value })}>
-                            {foods.map((food) => <option key={food.id} value={food.id}>{food.name}</option>)}
-                          </select>
-                          <Input type="number" step="0.1" value={editing.amount} onChange={(event) => setEditing({ ...editing, amount: Number(event.target.value) })} />
-                          <div className="flex gap-2">
+                        <div className="grid min-w-0 gap-2">
+                          <div className="grid min-w-0 gap-2 md:grid-cols-[minmax(0,1fr)_96px]">
+                            <select className="min-h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-950" value={editing.foodId} onChange={(event) => setEditing({ ...editing, foodId: event.target.value })}>
+                              {foods.map((food) => <option key={food.id} value={food.id}>{food.name}</option>)}
+                            </select>
+                            <Input type="number" step="0.1" value={editing.amount} onChange={(event) => setEditing({ ...editing, amount: Number(event.target.value) })} />
+                          </div>
+                          <div className="flex justify-end gap-2">
                             <button aria-label="Speichern" className="grid h-10 w-10 place-items-center rounded-lg bg-mint text-slate-950" onClick={updateItem}><Check size={18} /></button>
                             <button aria-label="Abbrechen" className="grid h-10 w-10 place-items-center rounded-lg bg-slate-200 dark:bg-slate-700" onClick={() => setEditing(null)}><X size={18} /></button>
                           </div>
                         </div>
                       ) : (
-                        <div className="flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-center justify-between gap-3">
                           <span>{item.food.name} · {item.amount} g · {Math.round(item.food.caloriesPer100g * item.amount / 100)} kcal</span>
                           <div className="flex shrink-0 gap-2">
                             <button aria-label="Bearbeiten" className="grid h-9 w-9 place-items-center rounded-lg hover:bg-white/70 dark:hover:bg-slate-700" onClick={() => setEditing({ id: item.id, foodId: item.food.id, amount: item.amount })}><Pencil size={16} /></button>
