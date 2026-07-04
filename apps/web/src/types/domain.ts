@@ -40,7 +40,7 @@ export type Food = {
 export type DayStats = {
   totals: MacroTotals;
   waterMl: number;
-  weight?: { weightKg: number };
+  weight?: { weightKg?: number | null; bodyFatPercent?: number | null; muscleMassKg?: number | null };
   bmi: number | null;
   goal: Goal;
 };

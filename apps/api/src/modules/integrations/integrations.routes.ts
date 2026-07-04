@@ -43,8 +43,24 @@ const mealItemSchema = z.object({
   servingName: z.string().optional()
 });
 
+const mealItemUpdateSchema = z.object({
+  foodId: z.string().optional(),
+  amount: z.coerce.number().positive().optional(),
+  unit: z.string().optional(),
+  servingName: z.string().optional().nullable()
+});
+
 const quickAddSchema = mealItemSchema.omit({ foodId: true }).extend({
   food: foodSchema
+});
+
+const bodyMetricSchema = z.object({
+  date: z.coerce.date().default(new Date()),
+  weightKg: z.coerce.number().positive().optional().nullable(),
+  bodyFatPercent: z.coerce.number().min(0).max(100).optional().nullable(),
+  muscleMassKg: z.coerce.number().positive().optional().nullable()
+}).refine((value) => value.weightKg != null || value.bodyFatPercent != null || value.muscleMassKg != null, {
+  message: "At least one body metric is required"
 });
 
 function clientMeta(req: Request) {
@@ -112,6 +128,27 @@ integrationsRouter.post(
   })
 );
 
+integrationsRouter.put(
+  "/openclaw/meals/items/:id",
+  requireIntegrationAuth,
+  requireIntegrationScope(IntegrationScopes.MEALS_WRITE),
+  asyncHandler(async (req, res) => {
+    const body = mealItemUpdateSchema.parse(req.body);
+    const item = await updateMealItem(req.user!.id, req.params.id, body);
+    res.json(item);
+  })
+);
+
+integrationsRouter.delete(
+  "/openclaw/meals/items/:id",
+  requireIntegrationAuth,
+  requireIntegrationScope(IntegrationScopes.MEALS_WRITE),
+  asyncHandler(async (req, res) => {
+    await prisma.mealItem.deleteMany({ where: { id: req.params.id, meal: { userId: req.user!.id } } });
+    res.status(204).end();
+  })
+);
+
 integrationsRouter.post(
   "/openclaw/meals/quick-add",
   requireIntegrationAuth,
@@ -143,11 +180,11 @@ integrationsRouter.post(
   requireIntegrationAuth,
   requireIntegrationScope(IntegrationScopes.WEIGHT_WRITE),
   asyncHandler(async (req, res) => {
-    const body = z.object({ date: z.coerce.date().default(new Date()), weightKg: z.coerce.number().positive() }).parse(req.body);
+    const body = bodyMetricSchema.parse(req.body);
     const entry = await prisma.weightEntry.upsert({
       where: { userId_date: { userId: req.user!.id, date: startOfDay(body.date) } },
-      update: { weightKg: body.weightKg },
-      create: { userId: req.user!.id, date: startOfDay(body.date), weightKg: body.weightKg }
+      update: { weightKg: body.weightKg, bodyFatPercent: body.bodyFatPercent, muscleMassKg: body.muscleMassKg },
+      create: { userId: req.user!.id, date: startOfDay(body.date), weightKg: body.weightKg, bodyFatPercent: body.bodyFatPercent, muscleMassKg: body.muscleMassKg }
     });
     res.status(201).json(entry);
   })
@@ -188,5 +225,19 @@ async function createMealItem(userId: string, body: z.infer<typeof mealItemSchem
     include: { food: true }
   });
   await prisma.food.update({ where: { id: food.id }, data: { lastUsedAt: new Date() } });
+  return item;
+}
+
+async function updateMealItem(userId: string, id: string, body: z.infer<typeof mealItemUpdateSchema>) {
+  if (body.foodId) {
+    await prisma.food.findFirstOrThrow({ where: { id: body.foodId, OR: [{ userId }, { isPublic: true }] } });
+  }
+  const existing = await prisma.mealItem.findFirstOrThrow({ where: { id, meal: { userId } } });
+  const item = await prisma.mealItem.update({
+    where: { id: existing.id },
+    data: body,
+    include: { food: true }
+  });
+  if (body.foodId) await prisma.food.update({ where: { id: body.foodId }, data: { lastUsedAt: new Date() } });
   return item;
 }

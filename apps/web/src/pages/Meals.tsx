@@ -1,4 +1,4 @@
-import { CalendarDays, ChevronLeft, ChevronRight, Plus, RotateCcw } from "lucide-react";
+import { CalendarDays, Check, ChevronLeft, ChevronRight, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { Button } from "../components/ui/Button";
@@ -20,6 +20,7 @@ export default function Meals() {
   const [selectedDate, setSelectedDate] = useState(today);
   const [foodId, setFoodId] = useState("");
   const [amount, setAmount] = useState(100);
+  const [editing, setEditing] = useState<{ id: string; foodId: string; amount: number } | null>(null);
   const { data: foods } = useApi<Food[]>("/foods", []);
   const { data: meals, reload } = useApi<DayMeal[]>(`/meals/day/${selectedDate}`, []);
 
@@ -27,6 +28,20 @@ export default function Meals() {
     if (!foodId) return;
     await api("/meals/items", { method: "POST", body: JSON.stringify({ date: selectedDate, type, foodId, amount, unit: "g" }) });
     toast.success("Mahlzeit aktualisiert");
+    await reload();
+  }
+
+  async function updateItem() {
+    if (!editing) return;
+    await api(`/meals/items/${editing.id}`, { method: "PUT", body: JSON.stringify({ foodId: editing.foodId, amount: editing.amount, unit: "g" }) });
+    setEditing(null);
+    toast.success("Eintrag geändert");
+    await reload();
+  }
+
+  async function deleteItem(id: string) {
+    await api(`/meals/items/${id}`, { method: "DELETE" });
+    toast.success("Eintrag gelöscht");
     await reload();
   }
 
@@ -108,11 +123,33 @@ export default function Meals() {
                 <Button onClick={() => add(type)}><Plus size={18} />Hinzufügen</Button>
               </div>
               <div className="space-y-2">
-                {meal?.items.map((item) => (
-                  <div key={item.id} className="rounded-lg bg-slate-100 p-3 text-sm dark:bg-slate-800">
-                    {item.food.name} · {item.amount} g · {Math.round(item.food.caloriesPer100g * item.amount / 100)} kcal
-                  </div>
-                ))}
+                {meal?.items.map((item) => {
+                  const isEditing = editing?.id === item.id;
+                  return (
+                    <div key={item.id} className="rounded-lg bg-slate-100 p-3 text-sm dark:bg-slate-800">
+                      {isEditing ? (
+                        <div className="grid gap-2 sm:grid-cols-[1fr_110px_auto] sm:items-center">
+                          <select className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-950" value={editing.foodId} onChange={(event) => setEditing({ ...editing, foodId: event.target.value })}>
+                            {foods.map((food) => <option key={food.id} value={food.id}>{food.name}</option>)}
+                          </select>
+                          <Input type="number" step="0.1" value={editing.amount} onChange={(event) => setEditing({ ...editing, amount: Number(event.target.value) })} />
+                          <div className="flex gap-2">
+                            <button aria-label="Speichern" className="grid h-10 w-10 place-items-center rounded-lg bg-mint text-slate-950" onClick={updateItem}><Check size={18} /></button>
+                            <button aria-label="Abbrechen" className="grid h-10 w-10 place-items-center rounded-lg bg-slate-200 dark:bg-slate-700" onClick={() => setEditing(null)}><X size={18} /></button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-3">
+                          <span>{item.food.name} · {item.amount} g · {Math.round(item.food.caloriesPer100g * item.amount / 100)} kcal</span>
+                          <div className="flex shrink-0 gap-2">
+                            <button aria-label="Bearbeiten" className="grid h-9 w-9 place-items-center rounded-lg hover:bg-white/70 dark:hover:bg-slate-700" onClick={() => setEditing({ id: item.id, foodId: item.food.id, amount: item.amount })}><Pencil size={16} /></button>
+                            <button aria-label="Löschen" className="grid h-9 w-9 place-items-center rounded-lg text-coral hover:bg-white/70 dark:hover:bg-slate-700" onClick={() => deleteItem(item.id)}><Trash2 size={16} /></button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
                 {!meal?.items.length && <p className="rounded-lg border border-dashed border-slate-200 p-3 text-sm text-slate-500 dark:border-slate-800">Noch keine Einträge für diesen Tag.</p>}
               </div>
             </Card>

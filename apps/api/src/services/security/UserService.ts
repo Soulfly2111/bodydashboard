@@ -43,7 +43,7 @@ export class UserService {
     });
   }
 
-  update(id: string, input: { username?: string; name?: string; firstName?: string; lastName?: string; email?: string; role?: string; status?: string; language?: string; timezone?: string; theme?: string }) {
+  update(id: string, input: { username?: string; name?: string; firstName?: string | null; lastName?: string | null; email?: string; role?: string; status?: string; language?: string; timezone?: string; theme?: string; heightCm?: number | null; trackWeight?: boolean; trackBodyFat?: boolean; trackMuscleMass?: boolean; trackWater?: boolean }) {
     return prisma.user.update({
       where: { id },
       data: { ...input, email: input.email?.toLowerCase() },
@@ -72,6 +72,10 @@ export class UserService {
       timezone: true,
       theme: true,
       heightCm: true,
+      trackWeight: true,
+      trackBodyFat: true,
+      trackMuscleMass: true,
+      trackWater: true,
       role: true,
       status: true,
       lockedUntil: true,

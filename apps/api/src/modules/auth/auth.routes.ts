@@ -81,3 +81,24 @@ authRouter.get(
     res.json(user);
   })
 );
+
+authRouter.put(
+  "/me",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const body = z.object({
+      name: z.string().min(2).optional(),
+      firstName: z.string().optional().nullable(),
+      lastName: z.string().optional().nullable(),
+      language: z.string().optional(),
+      timezone: z.string().optional(),
+      theme: z.string().optional(),
+      heightCm: z.coerce.number().positive().optional().nullable(),
+      trackWeight: z.boolean().optional(),
+      trackBodyFat: z.boolean().optional(),
+      trackMuscleMass: z.boolean().optional(),
+      trackWater: z.boolean().optional()
+    }).parse(req.body);
+    res.json(await users.update(req.user!.id, body));
+  })
+);

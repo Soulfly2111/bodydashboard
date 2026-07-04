@@ -18,6 +18,13 @@ const itemSchema = z.object({
   servingName: z.string().optional()
 });
 
+const itemUpdateSchema = z.object({
+  foodId: z.string().optional(),
+  amount: z.coerce.number().positive().optional(),
+  unit: z.string().optional(),
+  servingName: z.string().optional().nullable()
+});
+
 mealsRouter.get(
   "/day/:date",
   asyncHandler(async (req, res) => {
@@ -57,10 +64,28 @@ mealsRouter.post(
   })
 );
 
+mealsRouter.put(
+  "/items/:id",
+  asyncHandler(async (req, res) => {
+    const body = itemUpdateSchema.parse(req.body);
+    if (body.foodId) {
+      await prisma.food.findFirstOrThrow({ where: { id: body.foodId, OR: [{ userId: req.user!.id }, { isPublic: true }] } });
+    }
+    const existing = await prisma.mealItem.findFirstOrThrow({ where: { id: req.params.id, meal: { userId: req.user!.id } } });
+    const item = await prisma.mealItem.update({
+      where: { id: existing.id },
+      data: body,
+      include: { food: true }
+    });
+    if (body.foodId) await prisma.food.update({ where: { id: body.foodId }, data: { lastUsedAt: new Date() } });
+    res.json(item);
+  })
+);
+
 mealsRouter.delete(
   "/items/:id",
   asyncHandler(async (req, res) => {
-    await prisma.mealItem.delete({ where: { id: req.params.id } });
+    await prisma.mealItem.deleteMany({ where: { id: req.params.id, meal: { userId: req.user!.id } } });
     res.status(204).end();
   })
 );

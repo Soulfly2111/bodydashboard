@@ -1,7 +1,19 @@
 import { createContext, useContext, useMemo, useState } from "react";
 import { api } from "../lib/api";
 
-type User = { id: string; email: string; name: string; username?: string; role: string; status: string };
+type User = {
+  id: string;
+  email: string;
+  name: string;
+  username?: string;
+  role: string;
+  status: string;
+  heightCm?: number | null;
+  trackWeight?: boolean;
+  trackBodyFat?: boolean;
+  trackMuscleMass?: boolean;
+  trackWater?: boolean;
+};
 type AuthContextValue = {
   user: User | null;
   login(email: string, password: string, rememberMe?: boolean): Promise<void>;

@@ -1,15 +1,103 @@
-import { LogOut } from "lucide-react";
+import { type FormEvent, useState } from "react";
+import { LogOut, Save } from "lucide-react";
+import toast from "react-hot-toast";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { Input } from "../components/ui/Input";
 import { useAuth } from "../hooks/useAuth";
+import { api } from "../lib/api";
+
+type Profile = {
+  name: string;
+  heightCm: string;
+  language: string;
+  timezone: string;
+  trackWeight: boolean;
+  trackBodyFat: boolean;
+  trackMuscleMass: boolean;
+  trackWater: boolean;
+};
 
 export default function Settings() {
   const { logout, user } = useAuth();
+  const [profile, setProfile] = useState<Profile>({
+    name: user?.name ?? "",
+    heightCm: user?.heightCm ? String(user.heightCm) : "",
+    language: "de",
+    timezone: "Europe/Berlin",
+    trackWeight: user?.trackWeight ?? true,
+    trackBodyFat: user?.trackBodyFat ?? true,
+    trackMuscleMass: user?.trackMuscleMass ?? true,
+    trackWater: user?.trackWater ?? true
+  });
+
+  async function saveProfile(event: FormEvent) {
+    event.preventDefault();
+    const updated = await api("/auth/me", {
+      method: "PUT",
+      body: JSON.stringify({
+        name: profile.name,
+        heightCm: profile.heightCm ? Number(profile.heightCm) : null,
+        language: profile.language,
+        timezone: profile.timezone,
+        trackWeight: profile.trackWeight,
+        trackBodyFat: profile.trackBodyFat,
+        trackMuscleMass: profile.trackMuscleMass,
+        trackWater: profile.trackWater
+      })
+    });
+    localStorage.setItem("macroflow.user", JSON.stringify(updated));
+    toast.success("Einstellungen gespeichert");
+  }
+
   return (
     <div className="grid gap-4 xl:grid-cols-2">
-      <Card><h2 className="mb-4 font-bold">Benutzerprofil</h2><div className="space-y-3"><Input value={user?.name ?? ""} readOnly /><Input value={user?.email ?? ""} readOnly /><Button onClick={logout}><LogOut size={18} />Ausloggen</Button></div></Card>
-      <Card><h2 className="mb-4 font-bold">Einheiten & Sprache</h2><div className="grid gap-3"><select className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-800 dark:bg-slate-950"><option>Metrisch</option><option>Imperial</option></select><select className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-800 dark:bg-slate-950"><option>Deutsch</option><option>English</option></select><p className="text-sm text-slate-500">Theme wird oben rechts umgeschaltet. Tagesziele liegen im Bereich Ziele.</p></div></Card>
+      <Card>
+        <h2 className="mb-4 font-bold">Benutzerprofil</h2>
+        <form onSubmit={saveProfile} className="space-y-3">
+          <Input value={profile.name} onChange={(event) => setProfile({ ...profile, name: event.target.value })} placeholder="Name" />
+          <Input value={user?.email ?? ""} readOnly />
+          <Input type="number" step="0.1" value={profile.heightCm} onChange={(event) => setProfile({ ...profile, heightCm: event.target.value })} placeholder="Körpergröße in cm" />
+          <Button><Save size={18} />Speichern</Button>
+        </form>
+        <Button className="mt-4 bg-slate-200 text-ink dark:bg-slate-800 dark:text-white" onClick={logout}><LogOut size={18} />Ausloggen</Button>
+      </Card>
+
+      <Card>
+        <h2 className="mb-4 font-bold">Tracking</h2>
+        <div className="space-y-3">
+          {[
+            ["trackWeight", "Körpergewicht"],
+            ["trackBodyFat", "Körperfett"],
+            ["trackMuscleMass", "Muskelmasse"],
+            ["trackWater", "Wasser"]
+          ].map(([key, label]) => (
+            <label key={key} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800">
+              <span className="font-medium">{label}</span>
+              <input
+                type="checkbox"
+                checked={Boolean(profile[key as keyof Profile])}
+                onChange={(event) => setProfile({ ...profile, [key]: event.target.checked })}
+              />
+            </label>
+          ))}
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="mb-4 font-bold">Einheiten & Sprache</h2>
+        <div className="grid gap-3">
+          <select className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-800 dark:bg-slate-950">
+            <option>Metrisch</option>
+            <option>Imperial</option>
+          </select>
+          <select className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-800 dark:bg-slate-950" value={profile.language} onChange={(event) => setProfile({ ...profile, language: event.target.value })}>
+            <option value="de">Deutsch</option>
+            <option value="en">English</option>
+          </select>
+          <Input value={profile.timezone} onChange={(event) => setProfile({ ...profile, timezone: event.target.value })} placeholder="Zeitzone" />
+        </div>
+      </Card>
     </div>
   );
 }

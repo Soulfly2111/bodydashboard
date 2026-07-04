@@ -88,6 +88,24 @@ Meal types:
 BREAKFAST, LUNCH, DINNER, SNACK
 ```
 
+## Update Meal Item
+
+```bash
+curl -X PUT https://bodydashboard.de/api/integrations/openclaw/meals/items/MEAL_ITEM_ID \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer bdoc_..." \
+  -d '{ "amount": 150, "unit": "g" }'
+```
+
+You can also change `foodId`, `amount`, `unit`, and `servingName`.
+
+## Delete Meal Item
+
+```bash
+curl -X DELETE https://bodydashboard.de/api/integrations/openclaw/meals/items/MEAL_ITEM_ID \
+  -H "Authorization: Bearer bdoc_..."
+```
+
 ## Quick Add Food And Meal
 
 Creates or updates the food and immediately adds it to the meal.
@@ -132,5 +150,7 @@ curl -X POST https://bodydashboard.de/api/integrations/openclaw/water \
 curl -X POST https://bodydashboard.de/api/integrations/openclaw/weight \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer bdoc_..." \
-  -d '{ "date": "2026-07-02", "weightKg": 84.2 }'
+  -d '{ "date": "2026-07-02", "weightKg": 84.2, "bodyFatPercent": 18.5, "muscleMassKg": 62.1 }'
 ```
+
+All body metric fields are optional, but at least one of `weightKg`, `bodyFatPercent`, or `muscleMassKg` must be present.
