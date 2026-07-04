@@ -1,4 +1,4 @@
-import { Activity, Apple, CalendarDays, Camera, DatabaseZap, Droplet, Dumbbell, Home, Moon, Scale, Settings, Shield, Soup, Sun } from "lucide-react";
+import { Activity, Apple, CalendarDays, Camera, DatabaseZap, Droplet, Dumbbell, Home, Menu, Moon, Scale, Settings, Shield, Soup, Sun } from "lucide-react";
 import { NavLink, Navigate, Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { cn } from "../../lib/cn";
@@ -21,6 +21,7 @@ const nav = [
 export function AppShell() {
   const { user } = useAuth();
   const [dark, setDark] = useState(() => localStorage.getItem("macroflow.theme") === "dark");
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
@@ -28,6 +29,10 @@ export function AppShell() {
   }, [dark]);
 
   if (!user) return <Navigate to="/login" replace />;
+
+  const visibleNav = nav.filter((item) => !item.adminOnly || user.role === "ADMIN");
+  const primaryMobileNav = visibleNav.slice(0, 4);
+  const secondaryMobileNav = visibleNav.slice(4);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -41,8 +46,8 @@ export function AppShell() {
             <p className="text-xs text-slate-500">{user.name}</p>
           </div>
         </div>
-        <nav className="flex overflow-x-auto p-2 lg:block lg:space-y-1 lg:p-4">
-          {nav.filter((item) => !item.adminOnly || user.role === "ADMIN").map((item) => (
+        <nav className="hidden lg:block lg:space-y-1 lg:p-4">
+          {visibleNav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -59,6 +64,63 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
+
+        <div className="lg:hidden">
+          {mobileMoreOpen && (
+            <div className="absolute bottom-full left-2 right-2 mb-2 rounded-lg border border-slate-200 bg-white p-2 shadow-soft dark:border-slate-800 dark:bg-slate-900">
+              <div className="grid grid-cols-2 gap-1">
+                {secondaryMobileNav.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.to === "/"}
+                    onClick={() => setMobileMoreOpen(false)}
+                    className={({ isActive }) =>
+                      cn(
+                        "flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium text-slate-500 transition",
+                        isActive && "bg-mint/12 text-mint"
+                      )
+                    }
+                  >
+                    <item.icon size={19} />
+                    <span className="truncate">{item.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+          )}
+          <nav className="grid grid-cols-5 gap-1 px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-2">
+            {primaryMobileNav.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === "/"}
+                onClick={() => setMobileMoreOpen(false)}
+                className={({ isActive }) =>
+                  cn(
+                    "grid min-h-[58px] min-w-0 place-items-center gap-1 rounded-lg px-1 py-1 text-[0.65rem] font-medium leading-none text-slate-500 transition",
+                    isActive && "bg-mint/12 text-mint"
+                  )
+                }
+              >
+                <item.icon size={20} />
+                <span className="w-full truncate text-center">{item.label}</span>
+              </NavLink>
+            ))}
+            <button
+              type="button"
+              aria-label="Mehr Navigation"
+              className={cn(
+                "grid min-h-[58px] min-w-0 place-items-center gap-1 rounded-lg px-1 py-1 text-[0.65rem] font-medium leading-none text-slate-500 transition",
+                mobileMoreOpen && "bg-mint/12 text-mint"
+              )}
+              onClick={() => setMobileMoreOpen((value) => !value)}
+            >
+              <Menu size={20} />
+              <span className="w-full truncate text-center">Mehr</span>
+            </button>
+          </nav>
+        </div>
       </aside>
       <main className="pb-24 lg:ml-64 lg:pb-0">
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-slate-50/90 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
