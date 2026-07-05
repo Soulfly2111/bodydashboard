@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { Activity, Apple, CalendarDays, Camera, DatabaseZap, Dumbbell, Home, LogOut, Save, Scale, Settings as SettingsIcon, Shield, Soup } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -29,7 +30,6 @@ const pageOptions = [
   { id: "goals", label: "Ziele", icon: Dumbbell },
   { id: "weight", label: "Gewicht", icon: Scale },
   { id: "recipes", label: "Rezepte", icon: Activity },
-  { id: "import", label: "Import", icon: DatabaseZap },
   { id: "admin", label: "Admin", icon: Shield, adminOnly: true },
   { id: "settings", label: "Einstellungen", icon: SettingsIcon, locked: true }
 ];
@@ -52,6 +52,7 @@ function parseVisiblePages(value: string | null | undefined, role?: string) {
 
 export default function Settings() {
   const { logout, updateUser, user } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile>({
     name: user?.name ?? "",
     heightCm: user?.heightCm ? String(user.heightCm) : "",
@@ -123,6 +124,19 @@ export default function Settings() {
               </label>
             );
           })}
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="mb-4 font-bold">Import</h2>
+        <div className="flex flex-col gap-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800">
+          <div className="flex items-center gap-2 font-medium">
+            <DatabaseZap size={18} className="text-slate-500" />
+            <span>Confluence-Import und Importquellen</span>
+          </div>
+          <Button type="button" className="w-full sm:w-fit" onClick={() => navigate("/import")}>
+            <DatabaseZap size={18} />Import öffnen
+          </Button>
         </div>
       </Card>
 
