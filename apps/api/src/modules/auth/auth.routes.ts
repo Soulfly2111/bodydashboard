@@ -91,6 +91,7 @@ authRouter.put(
       firstName: z.string().optional().nullable(),
       lastName: z.string().optional().nullable(),
       language: z.string().optional(),
+      units: z.enum(["metric", "imperial"]).optional(),
       timezone: z.string().optional(),
       theme: z.string().optional(),
       heightCm: z.coerce.number().positive().optional().nullable(),

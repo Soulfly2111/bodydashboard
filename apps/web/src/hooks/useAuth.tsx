@@ -9,6 +9,10 @@ type User = {
   role: string;
   status: string;
   heightCm?: number | null;
+  language?: string;
+  units?: string;
+  timezone?: string;
+  theme?: string;
   trackWeight?: boolean;
   trackBodyFat?: boolean;
   trackMuscleMass?: boolean;
