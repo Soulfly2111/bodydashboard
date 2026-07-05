@@ -79,6 +79,23 @@ export default function Dashboard() {
     { name: "Fett", value: data.totals.fat, goal: data.goal.fat, color: "#FF6B5F" }
   ];
   const macroTotal = donut.reduce((sum, item) => sum + item.value, 0);
+  const weekTotals = week.days.reduce(
+    (totals, day) => ({
+      calories: totals.calories + day.calories,
+      protein: totals.protein + day.protein,
+      carbs: totals.carbs + day.carbs,
+      fat: totals.fat + day.fat,
+      waterMl: totals.waterMl + (day.waterMl ?? 0)
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0, waterMl: 0 }
+  );
+  const weekGoalItems = [
+    { label: "Kalorien", value: weekTotals.calories, goal: data.goal.calories * 7, unit: "kcal", color: "bg-rose-500" },
+    { label: "Protein", value: weekTotals.protein, goal: data.goal.protein * 7, unit: "g", color: "bg-teal-500" },
+    { label: "Kohlenhydrate", value: weekTotals.carbs, goal: data.goal.carbs * 7, unit: "g", color: "bg-amber-400" },
+    { label: "Fett", value: weekTotals.fat, goal: data.goal.fat * 7, unit: "g", color: "bg-red-400" },
+    ...(showWater ? [{ label: "Wasser", value: weekTotals.waterMl, goal: data.goal.waterMl * 7, unit: "ml", color: "bg-blue-500" }] : [])
+  ];
 
   async function addWater(amountMl: number) {
     await api("/water", { method: "POST", body: JSON.stringify({ amountMl, date: selectedDate }) });
@@ -150,6 +167,28 @@ export default function Dashboard() {
                   {showWeight && <p className="text-slate-500">{day.weightKg ? `${day.weightKg} kg` : "kein Gewicht"}</p>}
                 </div>
               </button>
+            );
+          })}
+        </div>
+        <div className="mt-4 grid gap-3 lg:grid-cols-5">
+          {weekGoalItems.map((item) => {
+            const percent = item.goal > 0 ? Math.round((item.value / item.goal) * 100) : 0;
+            return (
+              <div key={item.label} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+                <div className="mb-2 flex items-center justify-between gap-2 text-sm">
+                  <span className="font-semibold">{item.label}</span>
+                  <span className="text-slate-500">{percent}%</span>
+                </div>
+                <div className="mb-2 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+                  <div className={`h-full rounded-full ${item.color}`} style={{ width: `${Math.min(percent, 100)}%` }} />
+                </div>
+                <p className="text-sm text-slate-500">
+                  {Math.round(item.value)} / {Math.round(item.goal)} {item.unit}
+                </p>
+                <p className="text-xs text-slate-400">
+                  Ø {Math.round(item.value / 7)} {item.unit} pro Tag
+                </p>
+              </div>
             );
           })}
         </div>
