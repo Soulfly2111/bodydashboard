@@ -72,7 +72,41 @@ export class AuthService {
     await this.audit.log({ userId, action: "auth.password_changed" });
   }
 
-  private toPublicUser(user: { id: string; email: string; name: string; username?: string | null; role: string; status: string }) {
-    return { id: user.id, email: user.email, name: user.name, username: user.username, role: user.role, status: user.status };
+  private toPublicUser(user: {
+    id: string;
+    email: string;
+    name: string;
+    username?: string | null;
+    role: string;
+    status: string;
+    language?: string;
+    units?: string;
+    timezone?: string;
+    theme?: string;
+    heightCm?: number | null;
+    trackWeight?: boolean;
+    trackBodyFat?: boolean;
+    trackMuscleMass?: boolean;
+    trackWater?: boolean;
+    visiblePagesJson?: string | null;
+  }) {
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      username: user.username,
+      role: user.role,
+      status: user.status,
+      language: user.language,
+      units: user.units,
+      timezone: user.timezone,
+      theme: user.theme,
+      heightCm: user.heightCm,
+      trackWeight: user.trackWeight,
+      trackBodyFat: user.trackBodyFat,
+      trackMuscleMass: user.trackMuscleMass,
+      trackWater: user.trackWater,
+      visiblePagesJson: user.visiblePagesJson
+    };
   }
 }

@@ -17,6 +17,7 @@ type User = {
   trackBodyFat?: boolean;
   trackMuscleMass?: boolean;
   trackWater?: boolean;
+  visiblePagesJson?: string | null;
 };
 type AuthContextValue = {
   user: User | null;

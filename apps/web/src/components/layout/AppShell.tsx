@@ -5,18 +5,28 @@ import { cn } from "../../lib/cn";
 import { useAuth } from "../../hooks/useAuth";
 
 const nav = [
-  { to: "/", label: "Dashboard", icon: Home },
-  { to: "/foods", label: "Lebensmittel", icon: Apple },
-  { to: "/meals", label: "Mahlzeiten", icon: Soup },
-  { to: "/ai-meals", label: "Foto-KI", icon: Camera },
-  { to: "/week", label: "Woche", icon: CalendarDays },
-  { to: "/goals", label: "Ziele", icon: Dumbbell },
-  { to: "/weight", label: "Gewicht", icon: Scale },
-  { to: "/recipes", label: "Rezepte", icon: Activity },
-  { to: "/import", label: "Import", icon: DatabaseZap },
-  { to: "/admin", label: "Admin", icon: Shield, adminOnly: true },
-  { to: "/settings", label: "Einstellungen", icon: Settings }
+  { id: "dashboard", to: "/", label: "Dashboard", icon: Home, alwaysVisible: true },
+  { id: "foods", to: "/foods", label: "Lebensmittel", icon: Apple },
+  { id: "meals", to: "/meals", label: "Mahlzeiten", icon: Soup },
+  { id: "aiMeals", to: "/ai-meals", label: "Foto-KI", icon: Camera },
+  { id: "week", to: "/week", label: "Woche", icon: CalendarDays },
+  { id: "goals", to: "/goals", label: "Ziele", icon: Dumbbell },
+  { id: "weight", to: "/weight", label: "Gewicht", icon: Scale },
+  { id: "recipes", to: "/recipes", label: "Rezepte", icon: Activity },
+  { id: "import", to: "/import", label: "Import", icon: DatabaseZap },
+  { id: "admin", to: "/admin", label: "Admin", icon: Shield, adminOnly: true },
+  { id: "settings", to: "/settings", label: "Einstellungen", icon: Settings, alwaysVisible: true }
 ];
+
+function parseVisiblePages(value?: string | null) {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? new Set(parsed.filter((item): item is string => typeof item === "string")) : null;
+  } catch {
+    return null;
+  }
+}
 
 export function AppShell() {
   const { user } = useAuth();
@@ -30,7 +40,12 @@ export function AppShell() {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  const visibleNav = nav.filter((item) => !item.adminOnly || user.role === "ADMIN");
+  const configuredPages = parseVisiblePages(user.visiblePagesJson);
+  const visibleNav = nav.filter((item) => {
+    if (item.adminOnly && user.role !== "ADMIN") return false;
+    if (item.alwaysVisible || !configuredPages) return true;
+    return configuredPages.has(item.id);
+  });
   const primaryMobileNav = visibleNav.slice(0, 4);
   const secondaryMobileNav = visibleNav.slice(4);
 

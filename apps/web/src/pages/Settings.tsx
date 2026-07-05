@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from "react";
-import { LogOut, Save } from "lucide-react";
+import { Activity, Apple, CalendarDays, Camera, DatabaseZap, Dumbbell, Home, LogOut, Save, Scale, Settings as SettingsIcon, Shield, Soup } from "lucide-react";
 import toast from "react-hot-toast";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -17,7 +17,38 @@ type Profile = {
   trackBodyFat: boolean;
   trackMuscleMass: boolean;
   trackWater: boolean;
+  visiblePages: string[];
 };
+
+const pageOptions = [
+  { id: "dashboard", label: "Dashboard", icon: Home, locked: true },
+  { id: "foods", label: "Lebensmittel", icon: Apple },
+  { id: "meals", label: "Mahlzeiten", icon: Soup },
+  { id: "aiMeals", label: "Foto-KI", icon: Camera },
+  { id: "week", label: "Woche", icon: CalendarDays },
+  { id: "goals", label: "Ziele", icon: Dumbbell },
+  { id: "weight", label: "Gewicht", icon: Scale },
+  { id: "recipes", label: "Rezepte", icon: Activity },
+  { id: "import", label: "Import", icon: DatabaseZap },
+  { id: "admin", label: "Admin", icon: Shield, adminOnly: true },
+  { id: "settings", label: "Einstellungen", icon: SettingsIcon, locked: true }
+];
+
+function defaultVisiblePages(role?: string) {
+  return pageOptions.filter((page) => !page.adminOnly || role === "ADMIN").map((page) => page.id);
+}
+
+function parseVisiblePages(value: string | null | undefined, role?: string) {
+  if (!value) return defaultVisiblePages(role);
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return defaultVisiblePages(role);
+    const allowed = new Set(defaultVisiblePages(role));
+    return parsed.filter((item): item is string => typeof item === "string" && allowed.has(item));
+  } catch {
+    return defaultVisiblePages(role);
+  }
+}
 
 export default function Settings() {
   const { logout, updateUser, user } = useAuth();
@@ -30,8 +61,19 @@ export default function Settings() {
     trackWeight: user?.trackWeight ?? true,
     trackBodyFat: user?.trackBodyFat ?? true,
     trackMuscleMass: user?.trackMuscleMass ?? true,
-    trackWater: user?.trackWater ?? true
+    trackWater: user?.trackWater ?? true,
+    visiblePages: parseVisiblePages(user?.visiblePagesJson, user?.role)
   });
+
+  function togglePage(id: string, checked: boolean) {
+    const lockedPages = pageOptions.filter((page) => page.locked).map((page) => page.id);
+    setProfile((current) => {
+      const next = new Set([...current.visiblePages, ...lockedPages]);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return { ...current, visiblePages: [...next] };
+    });
+  }
 
   async function saveSettings(event: FormEvent) {
     event.preventDefault();
@@ -46,7 +88,8 @@ export default function Settings() {
         trackWeight: profile.trackWeight,
         trackBodyFat: profile.trackBodyFat,
         trackMuscleMass: profile.trackMuscleMass,
-        trackWater: profile.trackWater
+        trackWater: profile.trackWater,
+        visiblePages: [...new Set([...profile.visiblePages, "dashboard", "settings"])]
       })
     });
     updateUser(updated);
@@ -61,6 +104,25 @@ export default function Settings() {
           <Input value={profile.name} onChange={(event) => setProfile({ ...profile, name: event.target.value })} placeholder="Name" />
           <Input value={user?.email ?? ""} readOnly />
           <Input type="number" step="0.1" value={profile.heightCm} onChange={(event) => setProfile({ ...profile, heightCm: event.target.value })} placeholder="Körpergröße in cm" />
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="mb-4 font-bold">Seiten anzeigen</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {pageOptions.filter((page) => !page.adminOnly || user?.role === "ADMIN").map((page) => {
+            const Icon = page.icon;
+            const checked = page.locked || profile.visiblePages.includes(page.id);
+            return (
+              <label key={page.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800">
+                <span className="flex min-w-0 items-center gap-2 font-medium">
+                  <Icon size={18} className="shrink-0 text-slate-500" />
+                  <span className="truncate">{page.label}</span>
+                </span>
+                <input type="checkbox" checked={checked} disabled={page.locked} onChange={(event) => togglePage(page.id, event.target.checked)} />
+              </label>
+            );
+          })}
         </div>
       </Card>
 

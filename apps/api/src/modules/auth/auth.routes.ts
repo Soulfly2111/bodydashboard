@@ -98,8 +98,13 @@ authRouter.put(
       trackWeight: z.boolean().optional(),
       trackBodyFat: z.boolean().optional(),
       trackMuscleMass: z.boolean().optional(),
-      trackWater: z.boolean().optional()
+      trackWater: z.boolean().optional(),
+      visiblePages: z.array(z.string().min(1)).optional()
     }).parse(req.body);
-    res.json(await users.update(req.user!.id, body));
+    const { visiblePages, ...profile } = body;
+    res.json(await users.update(req.user!.id, {
+      ...profile,
+      visiblePagesJson: visiblePages ? JSON.stringify([...new Set(visiblePages)]) : undefined
+    }));
   })
 );
