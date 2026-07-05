@@ -41,15 +41,25 @@ statsRouter.get(
 statsRouter.get(
   "/week",
   asyncHandler(async (req, res) => {
-    const end = req.query.end ? new Date(String(req.query.end)) : new Date();
-    const start = subDays(startOfDay(end), 6);
-    const meals = await prisma.meal.findMany({
-      where: { userId: req.user!.id, date: { gte: start, lte: endOfDay(end) } },
-      include: { items: { include: { food: true } } }
-    });
+    const explicitStart = req.query.start ? startOfDay(new Date(String(req.query.start))) : null;
+    const end = req.query.end
+      ? startOfDay(new Date(String(req.query.end)))
+      : explicitStart ? addDays(explicitStart, 6) : new Date();
+    const start = explicitStart ?? subDays(startOfDay(end), 6);
+    const [meals, water, weights] = await Promise.all([
+      prisma.meal.findMany({
+        where: { userId: req.user!.id, date: { gte: start, lte: endOfDay(end) } },
+        include: { items: { include: { food: true } } }
+      }),
+      prisma.waterEntry.findMany({ where: { userId: req.user!.id, date: { gte: start, lte: endOfDay(end) } } }),
+      prisma.weightEntry.findMany({ where: { userId: req.user!.id, date: { gte: start, lte: endOfDay(end) } }, orderBy: { date: "asc" } })
+    ]);
     const days = Array.from({ length: 7 }, (_, index) => {
       const day = addDays(start, index);
-      const dayMeals = meals.filter((meal) => format(meal.date, "yyyy-MM-dd") === format(day, "yyyy-MM-dd"));
+      const dateKey = format(day, "yyyy-MM-dd");
+      const dayMeals = meals.filter((meal) => format(meal.date, "yyyy-MM-dd") === dateKey);
+      const waterMl = water.filter((entry) => format(entry.date, "yyyy-MM-dd") === dateKey).reduce((sum, entry) => sum + entry.amountMl, 0);
+      const weight = weights.find((entry) => format(entry.date, "yyyy-MM-dd") === dateKey);
       const totals = dayMeals.reduce((acc, meal) => {
         const mealTotals = totalsForItems(meal.items);
         acc.calories += mealTotals.calories;
@@ -61,9 +71,16 @@ statsRouter.get(
         acc.salt += mealTotals.salt;
         return acc;
       }, emptyTotals());
-      return { date: format(day, "yyyy-MM-dd"), ...roundTotals(totals) };
+      return {
+        date: dateKey,
+        ...roundTotals(totals),
+        waterMl,
+        weightKg: weight?.weightKg ?? null,
+        bodyFatPercent: weight?.bodyFatPercent ?? null,
+        muscleMassKg: weight?.muscleMassKg ?? null
+      };
     });
-    res.json({ days, averages: roundTotals(days.reduce((acc, day) => {
+    const nutritionAverages = roundTotals(days.reduce((acc, day) => {
       acc.calories += day.calories / 7;
       acc.protein += day.protein / 7;
       acc.carbs += day.carbs / 7;
@@ -72,6 +89,8 @@ statsRouter.get(
       acc.sugar += day.sugar / 7;
       acc.salt += day.salt / 7;
       return acc;
-    }, emptyTotals())) });
+    }, emptyTotals()));
+    const averageWaterMl = Math.round(days.reduce((sum, day) => sum + day.waterMl, 0) / 7);
+    res.json({ start: format(start, "yyyy-MM-dd"), end: format(end, "yyyy-MM-dd"), days, averages: { ...nutritionAverages, waterMl: averageWaterMl } });
   })
 );

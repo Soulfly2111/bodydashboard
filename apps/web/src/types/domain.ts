@@ -45,7 +45,13 @@ export type DayStats = {
   goal: Goal;
 };
 
-export type WeekDay = MacroTotals & { date: string };
+export type WeekDay = MacroTotals & {
+  date: string;
+  waterMl?: number;
+  weightKg?: number | null;
+  bodyFatPercent?: number | null;
+  muscleMassKg?: number | null;
+};
 
 export type AiRecognizedMealItem = {
   id?: string;
