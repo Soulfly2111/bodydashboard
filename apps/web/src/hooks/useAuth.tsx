@@ -23,6 +23,7 @@ type AuthContextValue = {
   login(email: string, password: string, rememberMe?: boolean): Promise<void>;
   register(name: string, email: string, password: string): Promise<void>;
   logout(): Promise<void>;
+  updateUser(user: User): void;
   isAdmin: boolean;
 };
 
@@ -58,6 +59,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem("macroflow.refreshToken");
         localStorage.removeItem("macroflow.user");
         setUser(null);
+      },
+      updateUser(nextUser) {
+        localStorage.setItem("macroflow.user", JSON.stringify(nextUser));
+        setUser(nextUser);
       }
     }),
     [user]

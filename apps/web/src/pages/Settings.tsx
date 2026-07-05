@@ -20,7 +20,7 @@ type Profile = {
 };
 
 export default function Settings() {
-  const { logout, user } = useAuth();
+  const { logout, updateUser, user } = useAuth();
   const [profile, setProfile] = useState<Profile>({
     name: user?.name ?? "",
     heightCm: user?.heightCm ? String(user.heightCm) : "",
@@ -35,7 +35,7 @@ export default function Settings() {
 
   async function saveSettings(event: FormEvent) {
     event.preventDefault();
-    const updated = await api("/auth/me", {
+    const updated = await api<NonNullable<typeof user>>("/auth/me", {
       method: "PUT",
       body: JSON.stringify({
         name: profile.name,
@@ -49,7 +49,7 @@ export default function Settings() {
         trackWater: profile.trackWater
       })
     });
-    localStorage.setItem("macroflow.user", JSON.stringify(updated));
+    updateUser(updated);
     toast.success("Einstellungen gespeichert");
   }
 
