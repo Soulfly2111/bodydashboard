@@ -1,4 +1,4 @@
-import { type ChangeEvent, type FormEvent, useMemo, useState } from "react";
+import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Camera, Images, LineChart as LineChartIcon, Ruler, Save, Sparkles, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -23,6 +23,13 @@ type MeasurementType = { slug: string; name: string; unit?: string };
 export default function BodyProgress() {
   const [photo, setPhoto] = useState({ date: today, viewType: "FRONT", imageUrl: "", notes: "", trainingPhase: "", dietPhase: "", referenceObject: "" });
   const [measurement, setMeasurement] = useState({ date: today, measurementType: "Bauchumfang", value: "", notes: "" });
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState("");
+  const [timerSeconds, setTimerSeconds] = useState(10);
+  const [countdown, setCountdown] = useState(0);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const { data: photos, reload: reloadPhotos } = useApi<BodyPhoto[]>("/body-progress/photos", []);
   const { data: measurements, reload: reloadMeasurements } = useApi<BodyMeasurement[]>("/body-progress/measurements", []);
   const { data: types } = useApi<MeasurementType[]>("/body-progress/measurement-types", []);
@@ -31,12 +38,59 @@ export default function BodyProgress() {
 
   const chartData = useMemo(() => stats.series["Bauchumfang"] ?? stats.series["Taillenumfang"] ?? [], [stats.series]);
 
+  useEffect(() => () => stopCamera(), []);
+
   async function handleFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => setPhoto((current) => ({ ...current, imageUrl: String(reader.result) }));
     reader.readAsDataURL(file);
+  }
+
+  async function startCamera() {
+    setCameraError("");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+      streamRef.current = stream;
+      setCameraOpen(true);
+      window.setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          void videoRef.current.play();
+        }
+      }, 0);
+    } catch {
+      setCameraError("Kamera konnte nicht geöffnet werden. Prüfe die Browser-Berechtigung oder nutze die native Kamera.");
+    }
+  }
+
+  function stopCamera() {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    setCameraOpen(false);
+    setCountdown(0);
+  }
+
+  function captureFrame() {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+    const width = video.videoWidth || 720;
+    const height = video.videoHeight || 960;
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext("2d")?.drawImage(video, 0, 0, width, height);
+    setPhoto((current) => ({ ...current, imageUrl: canvas.toDataURL("image/jpeg", 0.9) }));
+  }
+
+  async function captureWithTimer() {
+    for (let remaining = timerSeconds; remaining > 0; remaining -= 1) {
+      setCountdown(remaining);
+      await new Promise((resolve) => window.setTimeout(resolve, 1000));
+    }
+    setCountdown(0);
+    captureFrame();
   }
 
   async function savePhoto(event: FormEvent) {
@@ -93,7 +147,39 @@ export default function BodyProgress() {
             <select className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-800 dark:bg-slate-950" value={photo.viewType} onChange={(event) => setPhoto({ ...photo, viewType: event.target.value })}>
               {views.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
-            <Input type="file" accept="image/*" capture="environment" onChange={handleFile} />
+            <div className="grid gap-3 rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <label className="grid min-h-11 cursor-pointer place-items-center rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-ink dark:bg-slate-800 dark:text-white">
+                  Aus Bibliothek wählen
+                  <input className="hidden" type="file" accept="image/*" onChange={handleFile} />
+                </label>
+                <label className="grid min-h-11 cursor-pointer place-items-center rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-ink dark:bg-slate-800 dark:text-white">
+                  Kamera-App öffnen
+                  <input className="hidden" type="file" accept="image/*" capture="environment" onChange={handleFile} />
+                </label>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                <select className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-800 dark:bg-slate-950" value={timerSeconds} onChange={(event) => setTimerSeconds(Number(event.target.value))}>
+                  <option value={0}>Ohne Timer</option>
+                  <option value={3}>3 Sekunden Timer</option>
+                  <option value={10}>10 Sekunden Timer</option>
+                </select>
+                <Button type="button" onClick={cameraOpen ? stopCamera : startCamera}>
+                  <Camera size={18} />{cameraOpen ? "Kamera schließen" : "In-App-Kamera"}
+                </Button>
+              </div>
+              {cameraError && <p className="text-sm text-red-500">{cameraError}</p>}
+              {cameraOpen && (
+                <div className="relative overflow-hidden rounded-lg bg-slate-950">
+                  <video ref={videoRef} playsInline muted className="max-h-[70vh] w-full object-contain" />
+                  {countdown > 0 && <div className="absolute inset-0 grid place-items-center bg-slate-950/40 text-7xl font-bold text-white">{countdown}</div>}
+                  <div className="absolute bottom-3 left-3 right-3 flex justify-center">
+                    <Button type="button" onClick={captureWithTimer}><Camera size={18} />Foto aufnehmen</Button>
+                  </div>
+                </div>
+              )}
+              <canvas ref={canvasRef} className="hidden" />
+            </div>
             <Input value={photo.referenceObject} onChange={(event) => setPhoto({ ...photo, referenceObject: event.target.value })} placeholder="Referenzobjekt, z. B. Maßband" />
             <Input value={photo.trainingPhase} onChange={(event) => setPhoto({ ...photo, trainingPhase: event.target.value })} placeholder="Trainingsphase" />
             <Input value={photo.dietPhase} onChange={(event) => setPhoto({ ...photo, dietPhase: event.target.value })} placeholder="Diätphase" />
