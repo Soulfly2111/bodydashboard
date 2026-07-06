@@ -109,12 +109,12 @@ export default function Dashboard() {
     { calories: 0, protein: 0, carbs: 0, fat: 0, waterMl: 0 }
   );
   const weekGoalItems = [
-    { label: "Kalorien", value: weekTotals.calories, goal: data.goal.calories * 7, unit: "kcal", color: "bg-rose-500" },
-    { label: "Protein", value: weekTotals.protein, goal: data.goal.protein * 7, unit: "g", color: "bg-teal-500" },
-    { label: "Kohlenhydrate", value: weekTotals.carbs, goal: data.goal.carbs * 7, unit: "g", color: "bg-amber-400" },
-    { label: "Fett", value: weekTotals.fat, goal: data.goal.fat * 7, unit: "g", color: "bg-red-400" },
-    { label: "Aktivitäten", value: week.days.reduce((sum, day) => sum + (day.activityCalories ?? 0), 0), goal: activityGoal.caloriesPerWeek, unit: "kcal", color: "bg-violet-500" },
-    ...(showWater ? [{ label: "Wasser", value: weekTotals.waterMl, goal: data.goal.waterMl * 7, unit: "ml", color: "bg-blue-500" }] : [])
+    { label: "Kalorien", value: weekTotals.calories, goal: data.goal.calories * 7, unit: "kcal", color: "#F43F5E" },
+    { label: "Protein", value: weekTotals.protein, goal: data.goal.protein * 7, unit: "g", color: "#14B8A6" },
+    { label: "Kohlenhydrate", value: weekTotals.carbs, goal: data.goal.carbs * 7, unit: "g", color: "#F4B942" },
+    { label: "Fett", value: weekTotals.fat, goal: data.goal.fat * 7, unit: "g", color: "#F87171" },
+    { label: "Aktivitäten", value: week.days.reduce((sum, day) => sum + (day.activityCalories ?? 0), 0), goal: activityGoal.caloriesPerWeek, unit: "kcal", color: "#8B5CF6" },
+    ...(showWater ? [{ label: "Wasser", value: weekTotals.waterMl, goal: data.goal.waterMl * 7, unit: "ml", color: "#3B82F6" }] : [])
   ];
 
   async function addWater(amountMl: number) {
@@ -207,7 +207,7 @@ export default function Dashboard() {
                   <span className="text-slate-500">{percent}%</span>
                 </div>
                 <div className="mb-2 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
-                  <div className={`h-full rounded-full ${item.color}`} style={{ width: `${Math.min(percent, 100)}%` }} />
+                  <div className="h-full rounded-full" style={{ width: `${Math.min(percent, 100)}%`, backgroundColor: item.color }} />
                 </div>
                 <p className="text-sm text-slate-500">
                   {Math.round(item.value)} / {Math.round(item.goal)} {item.unit}
