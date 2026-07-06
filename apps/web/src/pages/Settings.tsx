@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from "react";
-import { Activity, Apple, CalendarDays, Camera, DatabaseZap, Dumbbell, Home, LogOut, Save, Scale, Settings as SettingsIcon, Shield, Soup } from "lucide-react";
+import { Activity, Apple, CalendarDays, Camera, DatabaseZap, Dumbbell, Home, Images, LogOut, Save, Scale, Settings as SettingsIcon, Shield, Soup } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Button } from "../components/ui/Button";
@@ -26,6 +26,7 @@ const pageOptions = [
   { id: "foods", label: "Lebensmittel", icon: Apple },
   { id: "meals", label: "Mahlzeiten", icon: Soup },
   { id: "activities", label: "Aktivitäten", icon: Activity },
+  { id: "bodyProgress", label: "Körperfortschritt", icon: Images },
   { id: "aiMeals", label: "Foto-KI", icon: Camera },
   { id: "week", label: "Woche", icon: CalendarDays },
   { id: "goals", label: "Ziele", icon: Dumbbell },

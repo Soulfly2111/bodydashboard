@@ -1,4 +1,4 @@
-import { Activity, Apple, CalendarDays, Camera, Droplet, Dumbbell, Home, Menu, Moon, Scale, Settings, Shield, Soup, Sun } from "lucide-react";
+import { Activity, Apple, CalendarDays, Camera, Droplet, Dumbbell, Home, Images, Menu, Moon, Scale, Settings, Shield, Soup, Sun } from "lucide-react";
 import { NavLink, Navigate, Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { cn } from "../../lib/cn";
@@ -9,6 +9,7 @@ const nav = [
   { id: "foods", to: "/foods", label: "Lebensmittel", icon: Apple },
   { id: "meals", to: "/meals", label: "Mahlzeiten", icon: Soup },
   { id: "activities", to: "/activities", label: "Aktivitäten", icon: Activity },
+  { id: "bodyProgress", to: "/body-progress", label: "Körperfortschritt", icon: Images },
   { id: "aiMeals", to: "/ai-meals", label: "Foto-KI", icon: Camera },
   { id: "week", to: "/week", label: "Woche", icon: CalendarDays },
   { id: "goals", to: "/goals", label: "Ziele", icon: Dumbbell },

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Activity, Beef, CalendarDays, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Flame, GlassWater, Scale, Wheat } from "lucide-react";
+import { Activity, Beef, CalendarDays, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Flame, GlassWater, Images, Ruler, Scale, Wheat } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { MetricCard } from "../components/dashboard/MetricCard";
 import { ProgressRing } from "../components/dashboard/ProgressRing";
@@ -7,7 +7,7 @@ import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { useApi } from "../hooks/useApi";
 import { api } from "../lib/api";
-import type { DayStats, Food, MacroTotals, WeekDay } from "../types/domain";
+import type { BodyProgressStatistics, DayStats, Food, MacroTotals, WeekDay } from "../types/domain";
 
 function toDateKey(date: Date) {
   const year = date.getFullYear();
@@ -89,6 +89,7 @@ export default function Dashboard() {
   });
   const { data: settings } = useApi<TrackingSettings>("/auth/me", {});
   const { data: favoriteFoods } = useApi<Food[]>("/favorites/foods", []);
+  const { data: bodyProgress } = useApi<BodyProgressStatistics>("/body-progress/statistics", { latestPhoto: null, latestMeasurements: {}, changes: {}, ratios: { waistToHip: null, waistToHeight: null }, series: {}, photoCount: 0 });
   const showWeight = settings.trackWeight ?? true;
   const showWater = settings.trackWater ?? true;
 
@@ -155,6 +156,10 @@ export default function Dashboard() {
         <MetricCard icon={Beef} label="Protein" value={Math.round(data.totals.protein)} unit="g" />
         <MetricCard icon={Wheat} label="Ballaststoffe" value={Math.round(data.totals.fiber)} unit="g" />
         {showWeight && <MetricCard icon={Scale} label="Gewicht / BMI" value={data.weight?.weightKg ?? "-"} unit={data.bmi ? `kg · BMI ${data.bmi}` : "kg"} />}
+        <MetricCard icon={Images} label="Letztes Fortschrittsbild" value={bodyProgress.latestPhoto?.date?.slice(0, 10) ?? "-"} unit={bodyProgress.latestPhoto?.viewType ?? ""} />
+        <MetricCard icon={Ruler} label="Bauch 30 Tage" value={bodyProgress.changes.abdomen30 ?? 0} unit="cm" />
+        <MetricCard icon={Ruler} label="Taille 30 Tage" value={bodyProgress.changes.waist30 ?? 0} unit="cm" />
+        <MetricCard icon={Ruler} label="Brust 30 Tage" value={bodyProgress.changes.chest30 ?? 0} unit="cm" />
       </div>
 
       <Card>

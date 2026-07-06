@@ -104,6 +104,39 @@ export type ActivityTypeOption = {
   defaultMet: number;
 };
 
+export type BodyPhoto = {
+  id: string;
+  date: string;
+  viewType: "FRONT" | "BACK" | "LEFT" | "RIGHT" | "CUSTOM";
+  imageUrl: string;
+  thumbnailUrl?: string | null;
+  notes?: string | null;
+  trainingPhase?: string | null;
+  dietPhase?: string | null;
+  referenceObject?: string | null;
+};
+
+export type BodyMeasurement = {
+  id: string;
+  date: string;
+  measurementType: string;
+  value: number;
+  unit: string;
+  source: string;
+  confidence?: number | null;
+  confirmedByUser: boolean;
+  notes?: string | null;
+};
+
+export type BodyProgressStatistics = {
+  latestPhoto: BodyPhoto | null;
+  latestMeasurements: Record<string, BodyMeasurement>;
+  changes: Record<string, number>;
+  ratios: { waistToHip: number | null; waistToHeight: number | null };
+  series: Record<string, Array<{ date: string; value: number }>>;
+  photoCount: number;
+};
+
 export type AiRecognizedMealItem = {
   id?: string;
   foodId?: string;

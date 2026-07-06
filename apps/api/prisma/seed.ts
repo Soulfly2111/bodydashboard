@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { PrismaClient, type Food } from "@prisma/client";
 import { startOfDay, subDays } from "date-fns";
 import { activityTypes, Intensities, metForIntensity } from "../src/services/activities/activityCatalog.js";
+import { bodyMeasurementTypes } from "../src/services/bodyProgress/bodyMeasurementCatalog.js";
 
 const prisma = new PrismaClient();
 
@@ -31,6 +32,7 @@ async function main() {
   await createSeedAuditLog(christoph.id, admin.id, "seed.user_created");
 
   await seedActivityTypes();
+  await seedBodyMeasurementTypes();
   await seedChristophData(christoph.id);
 }
 
@@ -89,6 +91,16 @@ async function seedActivityTypes() {
   }
 }
 
+async function seedBodyMeasurementTypes() {
+  for (const type of bodyMeasurementTypes) {
+    await prisma.bodyMeasurementType.upsert({
+      where: { slug: type.slug },
+      update: { name: type.name, unit: "cm", sortOrder: type.sortOrder },
+      create: { ...type, unit: "cm" }
+    });
+  }
+}
+
 async function seedChristophData(userId: string) {
   const foodInputs = [
     { name: "Haferflocken", brand: "Basis", category: "Getreide", caloriesPer100g: 370, protein: 13, carbs: 60, fat: 7, fiber: 10, sugar: 1, salt: 0.02 },
@@ -133,6 +145,70 @@ async function seedChristophData(userId: string) {
       await prisma.mealItem.deleteMany({ where: { mealId: meal.id } });
       await prisma.mealItem.createMany({ data: mealInput.entries.map(([foodIndex, amount]) => ({ mealId: meal.id, foodId: foods[foodIndex].id, amount, unit: "g" })) });
     }
+  }
+
+  await prisma.bodyProgressSettings.upsert({
+    where: { userId },
+    update: {},
+    create: { userId, aiMode: "CONFIRM", minConfidenceForAutoApply: 90, useHeightAsReference: true }
+  });
+  await prisma.bodyMeasurement.deleteMany({ where: { userId, source: "seed" } });
+  const measurementSeeds = [
+    ["Bauchumfang", 106],
+    ["Taillenumfang", 99],
+    ["Brustumfang", 112],
+    ["Hüftumfang", 104],
+    ["Oberarm links", 36],
+    ["Oberarm rechts", 36.4],
+    ["Oberschenkel links", 61],
+    ["Oberschenkel rechts", 61.5]
+  ] as const;
+  for (let i = 0; i <= 90; i += 10) {
+    const date = startOfDay(subDays(new Date(), i));
+    for (const [measurementType, base] of measurementSeeds) {
+      const trend = measurementType.includes("Bauch") || measurementType.includes("Taille") ? i * 0.045 : -i * 0.01;
+      await prisma.bodyMeasurement.create({
+        data: {
+          userId,
+          date,
+          measurementType,
+          value: Math.round((base + trend) * 10) / 10,
+          unit: "cm",
+          source: "seed",
+          confidence: 100,
+          confirmedByUser: true
+        }
+      });
+    }
+  }
+  await prisma.bodyPhoto.deleteMany({ where: { userId, imageUrl: { startsWith: "data:image/svg+xml" } } });
+  const photoSvg = (label: string, fill: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="640" height="820" viewBox="0 0 640 820"><rect width="640" height="820" fill="${fill}"/><circle cx="320" cy="180" r="62" fill="#e2e8f0"/><rect x="230" y="255" width="180" height="340" rx="80" fill="#cbd5e1"/><text x="320" y="720" font-family="Arial" font-size="40" text-anchor="middle" fill="#0f172a">${label}</text></svg>`)}`;
+  for (const [index, viewType] of ["FRONT", "BACK", "LEFT", "RIGHT"].entries()) {
+    const photo = await prisma.bodyPhoto.create({
+      data: {
+        userId,
+        date: startOfDay(subDays(new Date(), index * 30)),
+        viewType,
+        imageUrl: photoSvg(viewType, index % 2 ? "#dbeafe" : "#ccfbf1"),
+        thumbnailUrl: photoSvg(viewType, index % 2 ? "#dbeafe" : "#ccfbf1"),
+        notes: "Demo-Fortschrittsbild",
+        trainingPhase: "Aufbau",
+        dietPhase: index < 2 ? "Erhaltung" : "Diät",
+        referenceObject: "Körpergröße"
+      }
+    });
+    await prisma.bodyPhotoAnalysis.create({
+      data: {
+        photoId: photo.id,
+        provider: "local",
+        detectedViewType: viewType,
+        imageQualityScore: 78,
+        estimatedMeasurementsJson: JSON.stringify({ abdomen: { label: "Bauchumfang", value: 104, unit: "cm" }, waist: { label: "Taillenumfang", value: 98, unit: "cm" } }),
+        confidenceJson: JSON.stringify({ abdomen: 62, waist: 58 }),
+        analysisText: "Die KI erkennt eine Demo-Körperansicht. Die Werte sind Beispiel-Schätzungen und müssen geprüft werden.",
+        warnings: "Gleiche Haltung und gleicher Abstand verbessern die Vergleichbarkeit."
+      }
+    });
   }
 
   await prisma.activityGoal.upsert({

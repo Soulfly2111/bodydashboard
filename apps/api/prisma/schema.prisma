@@ -39,6 +39,9 @@ model User {
   weights      WeightEntry[]
   waters       WaterEntry[]
   activities   Activity[]
+  bodyPhotos   BodyPhoto[]
+  bodyMeasurements BodyMeasurement[]
+  bodyProgressSettings BodyProgressSettings?
   goal         Goal?
   activityGoal ActivityGoal?
   favorites    Favorite[]
@@ -314,6 +317,103 @@ model WorkoutSet {
   durationSeconds Int?
   distanceMeters Float?
   order      Int             @default(0)
+}
+
+model BodyMeasurementType {
+  id          String            @id @default(cuid())
+  slug        String            @unique
+  name        String
+  unit        String            @default("cm")
+  sortOrder   Int               @default(0)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  measurements BodyMeasurement[]
+}
+
+model BodyPhoto {
+  id                  String              @id @default(cuid())
+  userId              String
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date                DateTime
+  viewType            String
+  imageUrl            String
+  thumbnailUrl        String?
+  notes               String?
+  linkedWeightEntryId String?
+  trainingPhase       String?
+  dietPhase           String?
+  referenceObject     String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  analyses            BodyPhotoAnalysis[]
+
+  @@index([userId, date])
+  @@index([viewType])
+}
+
+model BodyMeasurement {
+  id                  String               @id @default(cuid())
+  userId              String
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date                DateTime
+  measurementTypeId   String?
+  measurementTypeRef  BodyMeasurementType? @relation(fields: [measurementTypeId], references: [id], onDelete: SetNull)
+  measurementType     String
+  value               Float
+  unit                String               @default("cm")
+  source              String               @default("manual")
+  confidence          Int?
+  confirmedByUser     Boolean              @default(true)
+  notes               String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([userId, date])
+  @@index([measurementType])
+}
+
+model BodyPhotoAnalysis {
+  id                        String    @id @default(cuid())
+  photoId                   String
+  photo                     BodyPhoto @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  provider                  String
+  detectedViewType          String?
+  imageQualityScore         Int?
+  estimatedMeasurementsJson String?
+  confidenceJson            String?
+  analysisText              String
+  warnings                  String?
+  createdAt                 DateTime  @default(now())
+
+  @@index([photoId])
+}
+
+model BodyProgressComparison {
+  id             String   @id @default(cuid())
+  userId         String
+  fromDate       DateTime
+  toDate         DateTime
+  summaryJson    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId, fromDate, toDate])
+}
+
+model BodyProgressSettings {
+  id                         String   @id @default(cuid())
+  userId                     String   @unique
+  user                       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiMode                     String   @default("SHOW_ONLY")
+  minConfidenceForAutoApply  Int      @default(90)
+  useHeightAsReference       Boolean  @default(true)
+  localStorageOnly           Boolean  @default(true)
+  encryptedStorage           Boolean  @default(false)
+  deletePhotosAfterAnalysis  Boolean  @default(false)
+  maxImageSizeMb             Int      @default(8)
+  stripExif                  Boolean  @default(true)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
 }
 
 model Favorite {

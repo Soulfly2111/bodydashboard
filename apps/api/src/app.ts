@@ -10,6 +10,7 @@ import { aiMealsRouter } from "./modules/aiMeals/aiMeals.routes.js";
 import { activitiesRouter } from "./modules/activities/activities.routes.js";
 import { adminRouter } from "./modules/admin/admin.routes.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
+import { bodyProgressRouter } from "./modules/bodyProgress/bodyProgress.routes.js";
 import { favoritesRouter } from "./modules/favorites/favorites.routes.js";
 import { foodsRouter } from "./modules/foods/foods.routes.js";
 import { goalsRouter } from "./modules/goals/goals.routes.js";
@@ -46,6 +47,7 @@ export function createApp() {
   app.use("/api/open-food-facts", openFoodFactsRouter);
   app.use("/api/ai-meals", aiMealsRouter);
   app.use("/api/activities", activitiesRouter);
+  app.use("/api/body-progress", bodyProgressRouter);
   app.use("/api/admin", adminRouter);
   app.use(errorMiddleware);
   return app;
