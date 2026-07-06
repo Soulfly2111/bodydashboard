@@ -38,7 +38,9 @@ model User {
   recipes      Recipe[]
   weights      WeightEntry[]
   waters       WaterEntry[]
+  activities   Activity[]
   goal         Goal?
+  activityGoal ActivityGoal?
   favorites    Favorite[]
   imports      ImportSource[]
   aiSettings   AiRecognitionSetting?
@@ -197,6 +199,121 @@ model Goal {
   weightKg  Float?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model ActivityType {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  name        String
+  category    String
+  defaultMet  Float
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  metValues   METValue[]
+  activities  Activity[]
+
+  @@index([category])
+}
+
+model METValue {
+  id             String       @id @default(cuid())
+  activityTypeId String
+  activityType   ActivityType @relation(fields: [activityTypeId], references: [id], onDelete: Cascade)
+  intensity      String
+  met            Float
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([activityTypeId, intensity])
+}
+
+model Activity {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityTypeId  String?
+  activityType    ActivityType? @relation(fields: [activityTypeId], references: [id], onDelete: SetNull)
+  typeName        String
+  date            DateTime
+  startTime       String?
+  endTime         String?
+  durationMinutes Int
+  intensity       String        @default("MEDIUM")
+  distanceKm      Float?
+  averageSpeedKmh Float?
+  averageHeartRate Int?
+  maxHeartRate    Int?
+  calories        Float
+  caloriesOverride Boolean      @default(false)
+  notes           String?
+  steps           Int?
+  elevationGainM  Float?
+  powerWatts      Float?
+  cadence         Float?
+  pace            String?
+  source          String        @default("manual")
+  externalId      String?
+  muscleGroupsJson String?
+  exercisesCount  Int?
+  setsCount       Int?
+  repsCount       Int?
+  trainingVolume  Float?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  workout         Workout?
+
+  @@index([userId, date])
+  @@index([activityTypeId])
+  @@index([source, externalId])
+}
+
+model ActivityGoal {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trainingDaysPerWeek     Int      @default(3)
+  trainingMinutesPerWeek  Int      @default(180)
+  caloriesPerWeek         Int      @default(1500)
+  stepsPerDay             Int      @default(8000)
+  strengthSessionsPerWeek Int      @default(2)
+  cardioSessionsPerWeek   Int      @default(2)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model Workout {
+  id          String            @id @default(cuid())
+  userId      String
+  activityId  String?           @unique
+  activity    Activity?         @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  name        String
+  notes       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  exercises   WorkoutExercise[]
+
+  @@index([userId])
+}
+
+model WorkoutExercise {
+  id          String       @id @default(cuid())
+  workoutId   String
+  workout     Workout      @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  name        String
+  muscleGroup String?
+  order       Int          @default(0)
+  sets        WorkoutSet[]
+}
+
+model WorkoutSet {
+  id         String          @id @default(cuid())
+  exerciseId String
+  exercise   WorkoutExercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  reps       Int?
+  weightKg   Float?
+  durationSeconds Int?
+  distanceMeters Float?
+  order      Int             @default(0)
 }
 
 model Favorite {

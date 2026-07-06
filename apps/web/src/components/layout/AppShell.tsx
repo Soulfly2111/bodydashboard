@@ -8,6 +8,7 @@ const nav = [
   { id: "dashboard", to: "/", label: "Dashboard", icon: Home, alwaysVisible: true },
   { id: "foods", to: "/foods", label: "Lebensmittel", icon: Apple },
   { id: "meals", to: "/meals", label: "Mahlzeiten", icon: Soup },
+  { id: "activities", to: "/activities", label: "Aktivitäten", icon: Activity },
   { id: "aiMeals", to: "/ai-meals", label: "Foto-KI", icon: Camera },
   { id: "week", to: "/week", label: "Woche", icon: CalendarDays },
   { id: "goals", to: "/goals", label: "Ziele", icon: Dumbbell },

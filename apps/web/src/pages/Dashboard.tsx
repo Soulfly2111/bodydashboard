@@ -47,7 +47,16 @@ type WeekStats = {
   start: string;
   end: string;
   days: WeekDay[];
-  averages: MacroTotals & { waterMl?: number };
+  averages: MacroTotals & { waterMl?: number; activityCalories?: number; trainingMinutes?: number };
+};
+
+type ActivityGoal = {
+  trainingDaysPerWeek: number;
+  trainingMinutesPerWeek: number;
+  caloriesPerWeek: number;
+  stepsPerDay: number;
+  strengthSessionsPerWeek: number;
+  cardioSessionsPerWeek: number;
 };
 
 export default function Dashboard() {
@@ -60,13 +69,23 @@ export default function Dashboard() {
     totals: { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
     waterMl: 0,
     bmi: null,
-    goal: { calories: 2200, protein: 150, carbs: 250, fat: 70, waterMl: 2500 }
+    goal: { calories: 2200, protein: 150, carbs: 250, fat: 70, waterMl: 2500 },
+    activities: { count: 0, calories: 0, durationMinutes: 0 },
+    energy: { consumedCalories: 0, basalMetabolicRate: 0, activityCalories: 0, trainingCalories: 0, totalExpenditure: 0, netCalories: 0, calorieBalance: 0, surplus: 0, deficit: 0 }
   });
   const { data: week, reload: reloadWeek } = useApi<WeekStats>(`/stats/week?start=${weekStart}`, {
     start: weekStart,
     end: weekEnd,
     days: [],
-    averages: { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, waterMl: 0 }
+    averages: { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, waterMl: 0, activityCalories: 0, trainingMinutes: 0 }
+  });
+  const { data: activityGoal } = useApi<ActivityGoal>("/activities/goals", {
+    trainingDaysPerWeek: 3,
+    trainingMinutesPerWeek: 180,
+    caloriesPerWeek: 1500,
+    stepsPerDay: 8000,
+    strengthSessionsPerWeek: 2,
+    cardioSessionsPerWeek: 2
   });
   const { data: settings } = useApi<TrackingSettings>("/auth/me", {});
   const { data: favoriteFoods } = useApi<Food[]>("/favorites/foods", []);
@@ -94,6 +113,7 @@ export default function Dashboard() {
     { label: "Protein", value: weekTotals.protein, goal: data.goal.protein * 7, unit: "g", color: "bg-teal-500" },
     { label: "Kohlenhydrate", value: weekTotals.carbs, goal: data.goal.carbs * 7, unit: "g", color: "bg-amber-400" },
     { label: "Fett", value: weekTotals.fat, goal: data.goal.fat * 7, unit: "g", color: "bg-red-400" },
+    { label: "Aktivitäten", value: week.days.reduce((sum, day) => sum + (day.activityCalories ?? 0), 0), goal: activityGoal.caloriesPerWeek, unit: "kcal", color: "bg-violet-500" },
     ...(showWater ? [{ label: "Wasser", value: weekTotals.waterMl, goal: data.goal.waterMl * 7, unit: "ml", color: "bg-blue-500" }] : [])
   ];
 
@@ -125,7 +145,13 @@ export default function Dashboard() {
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard icon={Flame} label={selectedDate === today ? "Kalorien heute" : "Kalorien"} value={Math.round(data.totals.calories)} unit="kcal" />
+        <MetricCard icon={Flame} label="Aufgenommene Kalorien" value={Math.round(data.energy?.consumedCalories ?? data.totals.calories)} unit="kcal" />
+        <MetricCard icon={Activity} label="Verbrauchte Kalorien" value={Math.round(data.energy?.totalExpenditure ?? 0)} unit="kcal" />
+        <MetricCard icon={Flame} label="Netto-Kalorien" value={Math.round(data.energy?.netCalories ?? 0)} unit="kcal" />
+        <MetricCard icon={Activity} label="Kalorienbilanz" value={Math.round(data.energy?.calorieBalance ?? 0)} unit={(data.energy?.calorieBalance ?? 0) >= 0 ? "Überschuss" : "Defizit"} />
+        <MetricCard icon={Activity} label="Aktivitäten heute" value={data.activities?.count ?? 0} unit="Einheiten" />
+        <MetricCard icon={Activity} label="Trainingszeit heute" value={data.activities?.durationMinutes ?? 0} unit="min" />
+        <MetricCard icon={Flame} label="Verbrannte Aktivitätskalorien" value={Math.round(data.activities?.calories ?? 0)} unit="kcal" />
         <MetricCard icon={Beef} label="Protein" value={Math.round(data.totals.protein)} unit="g" />
         <MetricCard icon={Wheat} label="Ballaststoffe" value={Math.round(data.totals.fiber)} unit="g" />
         {showWeight && <MetricCard icon={Scale} label="Gewicht / BMI" value={data.weight?.weightKg ?? "-"} unit={data.bmi ? `kg · BMI ${data.bmi}` : "kg"} />}
@@ -138,7 +164,7 @@ export default function Dashboard() {
             <h2 className="font-bold">{dateFormatter.format(fromDateKey(week.start))} - {dateFormatter.format(fromDateKey(week.end))}</h2>
           </div>
           <div className="text-sm text-slate-500">
-            Ø {Math.round(week.averages.calories)} kcal · P {Math.round(week.averages.protein)} g · Wasser {Math.round(week.averages.waterMl ?? 0)} ml
+            Ø {Math.round(week.averages.calories)} kcal · Training {Math.round(week.averages.trainingMinutes ?? 0)} min · Verbrauch {Math.round(week.averages.activityCalories ?? 0)} kcal
           </div>
         </div>
         <div className="grid gap-3 md:grid-cols-7">
@@ -163,6 +189,7 @@ export default function Dashboard() {
                 <div className="space-y-1 text-sm">
                   <p className="font-semibold">{Math.round(day.calories)} kcal</p>
                   <p className="text-slate-500">P {Math.round(day.protein)} · C {Math.round(day.carbs)} · F {Math.round(day.fat)}</p>
+                  <p className="text-slate-500">{Math.round(day.trainingMinutes ?? 0)} min · {Math.round(day.activityCalories ?? 0)} kcal aktiv</p>
                   {showWater && <p className="text-slate-500">{Math.round(day.waterMl ?? 0)} ml Wasser</p>}
                   {showWeight && <p className="text-slate-500">{day.weightKg ? `${day.weightKg} kg` : "kein Gewicht"}</p>}
                 </div>

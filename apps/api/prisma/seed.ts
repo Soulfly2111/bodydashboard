@@ -2,6 +2,7 @@ import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { PrismaClient, type Food } from "@prisma/client";
 import { startOfDay, subDays } from "date-fns";
+import { activityTypes, Intensities, metForIntensity } from "../src/services/activities/activityCatalog.js";
 
 const prisma = new PrismaClient();
 
@@ -29,6 +30,7 @@ async function main() {
   await createSeedAuditLog(admin.id, admin.id, "seed.admin_created");
   await createSeedAuditLog(christoph.id, admin.id, "seed.user_created");
 
+  await seedActivityTypes();
   await seedChristophData(christoph.id);
 }
 
@@ -68,6 +70,23 @@ async function upsertUser(input: { username: string; email: string; name: string
       goal: { create: { calories: 2200, protein: 150, carbs: 240, fat: 70, waterMl: 2800, weightKg: 78 } }
     }
   });
+}
+
+async function seedActivityTypes() {
+  for (const type of activityTypes) {
+    const activityType = await prisma.activityType.upsert({
+      where: { slug: type.slug },
+      update: { name: type.name, category: type.category, defaultMet: type.defaultMet },
+      create: type
+    });
+    for (const intensity of Object.keys(Intensities)) {
+      await prisma.mETValue.upsert({
+        where: { activityTypeId_intensity: { activityTypeId: activityType.id, intensity } },
+        update: { met: metForIntensity(type.defaultMet, intensity) },
+        create: { activityTypeId: activityType.id, intensity, met: metForIntensity(type.defaultMet, intensity) }
+      });
+    }
+  }
 }
 
 async function seedChristophData(userId: string) {
@@ -114,6 +133,49 @@ async function seedChristophData(userId: string) {
       await prisma.mealItem.deleteMany({ where: { mealId: meal.id } });
       await prisma.mealItem.createMany({ data: mealInput.entries.map(([foodIndex, amount]) => ({ mealId: meal.id, foodId: foods[foodIndex].id, amount, unit: "g" })) });
     }
+  }
+
+  await prisma.activityGoal.upsert({
+    where: { userId },
+    update: { trainingDaysPerWeek: 4, trainingMinutesPerWeek: 240, caloriesPerWeek: 2200, stepsPerDay: 9000, strengthSessionsPerWeek: 2, cardioSessionsPerWeek: 2 },
+    create: { userId, trainingDaysPerWeek: 4, trainingMinutesPerWeek: 240, caloriesPerWeek: 2200, stepsPerDay: 9000, strengthSessionsPerWeek: 2, cardioSessionsPerWeek: 2 }
+  });
+  await prisma.activity.deleteMany({ where: { userId, source: "seed" } });
+  const seedActivities = [
+    { typeName: "Krafttraining", durationMinutes: 65, intensity: "HIGH", calories: 420, exercisesCount: 7, setsCount: 22, repsCount: 180, trainingVolume: 8200 },
+    { typeName: "Laufen", durationMinutes: 38, intensity: "HIGH", calories: 470, distanceKm: 6.2, averageHeartRate: 148, maxHeartRate: 171, steps: 7600 },
+    { typeName: "Fahrrad", durationMinutes: 55, intensity: "MEDIUM", calories: 510, distanceKm: 18, averageHeartRate: 132, steps: 0 },
+    { typeName: "Walking", durationMinutes: 45, intensity: "LIGHT", calories: 210, distanceKm: 4.2, steps: 5600 },
+    { typeName: "Ganzkörpertraining", durationMinutes: 50, intensity: "MEDIUM", calories: 360, exercisesCount: 6, setsCount: 18, repsCount: 160, trainingVolume: 6200 }
+  ];
+  for (let i = 0; i < 30; i += 1) {
+    if (i % 2 === 1 && i % 5 !== 0) continue;
+    const template = seedActivities[i % seedActivities.length];
+    const date = startOfDay(subDays(new Date(), i));
+    const activityType = await prisma.activityType.findFirst({ where: { name: template.typeName } });
+    await prisma.activity.create({
+      data: {
+        userId,
+        activityTypeId: activityType?.id,
+        typeName: template.typeName,
+        date,
+        startTime: i % 3 === 0 ? "18:00" : "07:30",
+        durationMinutes: template.durationMinutes,
+        intensity: template.intensity,
+        calories: template.calories,
+        source: "seed",
+        distanceKm: "distanceKm" in template ? template.distanceKm : null,
+        averageHeartRate: "averageHeartRate" in template ? template.averageHeartRate : null,
+        maxHeartRate: "maxHeartRate" in template ? template.maxHeartRate : null,
+        steps: "steps" in template ? template.steps : null,
+        exercisesCount: "exercisesCount" in template ? template.exercisesCount : null,
+        setsCount: "setsCount" in template ? template.setsCount : null,
+        repsCount: "repsCount" in template ? template.repsCount : null,
+        trainingVolume: "trainingVolume" in template ? template.trainingVolume : null,
+        muscleGroupsJson: template.typeName.includes("training") || template.typeName.includes("Ganz") ? JSON.stringify(["Brust", "Rücken", "Beine"]) : null,
+        notes: "Seed-Aktivität"
+      }
+    });
   }
 
   await prisma.favorite.upsert({ where: { userId_type_targetId: { userId, type: "FOOD", targetId: foods[1].id } }, update: { label: foods[1].name }, create: { userId, type: "FOOD", targetId: foods[1].id, label: foods[1].name } });

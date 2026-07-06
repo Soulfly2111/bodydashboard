@@ -8,11 +8,15 @@ import { emptyTotals, roundTotals, totalsForItems } from "../../utils/nutrition.
 export const statsRouter = Router();
 statsRouter.use(requireAuth);
 
+function basalMetabolicRate(weightKg?: number | null) {
+  return Math.round((weightKg ?? 75) * 22);
+}
+
 statsRouter.get(
   "/day/:date",
   asyncHandler(async (req, res) => {
     const date = new Date(req.params.date);
-    const [meals, water, weight, goal, user] = await Promise.all([
+    const [meals, water, weight, goal, user, activities] = await Promise.all([
       prisma.meal.findMany({
         where: { userId: req.user!.id, date: { gte: startOfDay(date), lte: endOfDay(date) } },
         include: { items: { include: { food: true } } }
@@ -20,7 +24,8 @@ statsRouter.get(
       prisma.waterEntry.findMany({ where: { userId: req.user!.id, date: { gte: startOfDay(date), lte: endOfDay(date) } } }),
       prisma.weightEntry.findFirst({ where: { userId: req.user!.id }, orderBy: { date: "desc" } }),
       prisma.goal.upsert({ where: { userId: req.user!.id }, update: {}, create: { userId: req.user!.id } }),
-      prisma.user.findUnique({ where: { id: req.user!.id } })
+      prisma.user.findUnique({ where: { id: req.user!.id } }),
+      prisma.activity.findMany({ where: { userId: req.user!.id, date: { gte: startOfDay(date), lte: endOfDay(date) } } })
     ]);
     const totals = meals.flatMap((meal) => meal.items).reduce((acc, item) => {
       acc.calories += (item.food.caloriesPer100g * item.amount) / 100;
@@ -34,7 +39,31 @@ statsRouter.get(
     }, emptyTotals());
     const waterMl = water.reduce((sum, item) => sum + item.amountMl, 0);
     const bmi = weight?.weightKg && user?.heightCm ? weight.weightKg / Math.pow(user.heightCm / 100, 2) : null;
-    res.json({ totals: roundTotals(totals), waterMl, weight, bmi: bmi ? Math.round(bmi * 10) / 10 : null, goal });
+    const roundedTotals = roundTotals(totals);
+    const activityCalories = Math.round(activities.reduce((sum, item) => sum + item.calories, 0));
+    const trainingMinutes = activities.reduce((sum, item) => sum + item.durationMinutes, 0);
+    const bmr = basalMetabolicRate(weight?.weightKg);
+    const totalExpenditure = bmr + activityCalories;
+    const calorieBalance = Math.round(roundedTotals.calories - totalExpenditure);
+    res.json({
+      totals: roundedTotals,
+      waterMl,
+      weight,
+      bmi: bmi ? Math.round(bmi * 10) / 10 : null,
+      goal,
+      activities: { count: activities.length, calories: activityCalories, durationMinutes: trainingMinutes },
+      energy: {
+        consumedCalories: roundedTotals.calories,
+        basalMetabolicRate: bmr,
+        activityCalories,
+        trainingCalories: activityCalories,
+        totalExpenditure,
+        netCalories: Math.round(roundedTotals.calories - activityCalories),
+        calorieBalance,
+        surplus: calorieBalance > 0 ? calorieBalance : 0,
+        deficit: calorieBalance < 0 ? Math.abs(calorieBalance) : 0
+      }
+    });
   })
 );
 
@@ -46,13 +75,14 @@ statsRouter.get(
       ? startOfDay(new Date(String(req.query.end)))
       : explicitStart ? addDays(explicitStart, 6) : new Date();
     const start = explicitStart ?? subDays(startOfDay(end), 6);
-    const [meals, water, weights] = await Promise.all([
+    const [meals, water, weights, activities] = await Promise.all([
       prisma.meal.findMany({
         where: { userId: req.user!.id, date: { gte: start, lte: endOfDay(end) } },
         include: { items: { include: { food: true } } }
       }),
       prisma.waterEntry.findMany({ where: { userId: req.user!.id, date: { gte: start, lte: endOfDay(end) } } }),
-      prisma.weightEntry.findMany({ where: { userId: req.user!.id, date: { gte: start, lte: endOfDay(end) } }, orderBy: { date: "asc" } })
+      prisma.weightEntry.findMany({ where: { userId: req.user!.id, date: { gte: start, lte: endOfDay(end) } }, orderBy: { date: "asc" } }),
+      prisma.activity.findMany({ where: { userId: req.user!.id, date: { gte: start, lte: endOfDay(end) } } })
     ]);
     const days = Array.from({ length: 7 }, (_, index) => {
       const day = addDays(start, index);
@@ -60,6 +90,7 @@ statsRouter.get(
       const dayMeals = meals.filter((meal) => format(meal.date, "yyyy-MM-dd") === dateKey);
       const waterMl = water.filter((entry) => format(entry.date, "yyyy-MM-dd") === dateKey).reduce((sum, entry) => sum + entry.amountMl, 0);
       const weight = weights.find((entry) => format(entry.date, "yyyy-MM-dd") === dateKey);
+      const dayActivities = activities.filter((activity) => format(activity.date, "yyyy-MM-dd") === dateKey);
       const totals = dayMeals.reduce((acc, meal) => {
         const mealTotals = totalsForItems(meal.items);
         acc.calories += mealTotals.calories;
@@ -75,6 +106,9 @@ statsRouter.get(
         date: dateKey,
         ...roundTotals(totals),
         waterMl,
+        activityCalories: Math.round(dayActivities.reduce((sum, activity) => sum + activity.calories, 0)),
+        trainingMinutes: dayActivities.reduce((sum, activity) => sum + activity.durationMinutes, 0),
+        activityCount: dayActivities.length,
         weightKg: weight?.weightKg ?? null,
         bodyFatPercent: weight?.bodyFatPercent ?? null,
         muscleMassKg: weight?.muscleMassKg ?? null
@@ -91,6 +125,13 @@ statsRouter.get(
       return acc;
     }, emptyTotals()));
     const averageWaterMl = Math.round(days.reduce((sum, day) => sum + day.waterMl, 0) / 7);
-    res.json({ start: format(start, "yyyy-MM-dd"), end: format(end, "yyyy-MM-dd"), days, averages: { ...nutritionAverages, waterMl: averageWaterMl } });
+    const averageActivityCalories = Math.round(days.reduce((sum, day) => sum + day.activityCalories, 0) / 7);
+    const averageTrainingMinutes = Math.round(days.reduce((sum, day) => sum + day.trainingMinutes, 0) / 7);
+    res.json({
+      start: format(start, "yyyy-MM-dd"),
+      end: format(end, "yyyy-MM-dd"),
+      days,
+      averages: { ...nutritionAverages, waterMl: averageWaterMl, activityCalories: averageActivityCalories, trainingMinutes: averageTrainingMinutes }
+    });
   })
 );

@@ -43,14 +43,65 @@ export type DayStats = {
   weight?: { weightKg?: number | null; bodyFatPercent?: number | null; muscleMassKg?: number | null };
   bmi: number | null;
   goal: Goal;
+  activities?: { count: number; calories: number; durationMinutes: number };
+  energy?: {
+    consumedCalories: number;
+    basalMetabolicRate: number;
+    activityCalories: number;
+    trainingCalories: number;
+    totalExpenditure: number;
+    netCalories: number;
+    calorieBalance: number;
+    surplus: number;
+    deficit: number;
+  };
 };
 
 export type WeekDay = MacroTotals & {
   date: string;
   waterMl?: number;
+  activityCalories?: number;
+  trainingMinutes?: number;
+  activityCount?: number;
   weightKg?: number | null;
   bodyFatPercent?: number | null;
   muscleMassKg?: number | null;
+};
+
+export type ActivityEntry = {
+  id: string;
+  typeName: string;
+  date: string;
+  startTime?: string | null;
+  endTime?: string | null;
+  durationMinutes: number;
+  intensity: "VERY_LIGHT" | "LIGHT" | "MEDIUM" | "HIGH" | "VERY_HIGH";
+  distanceKm?: number | null;
+  averageSpeedKmh?: number | null;
+  averageHeartRate?: number | null;
+  maxHeartRate?: number | null;
+  calories: number;
+  caloriesOverride: boolean;
+  notes?: string | null;
+  steps?: number | null;
+  elevationGainM?: number | null;
+  powerWatts?: number | null;
+  cadence?: number | null;
+  pace?: string | null;
+  source: string;
+  muscleGroupsJson?: string | null;
+  exercisesCount?: number | null;
+  setsCount?: number | null;
+  repsCount?: number | null;
+  trainingVolume?: number | null;
+};
+
+export type ActivityTypeOption = {
+  id?: string;
+  slug: string;
+  name: string;
+  category: string;
+  defaultMet: number;
 };
 
 export type AiRecognizedMealItem = {
