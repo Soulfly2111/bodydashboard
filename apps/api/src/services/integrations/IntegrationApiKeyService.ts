@@ -3,15 +3,22 @@ import { prisma } from "../../config/prisma.js";
 import { AuditLogService } from "../security/AuditLogService.js";
 
 export const IntegrationScopes = {
+  ALL: "*",
   FOODS_WRITE: "foods:write",
   MEALS_WRITE: "meals:write",
   WATER_WRITE: "water:write",
-  WEIGHT_WRITE: "weight:write"
+  WEIGHT_WRITE: "weight:write",
+  ACTIVITIES_WRITE: "activities:write",
+  BODY_PROGRESS_WRITE: "body-progress:write",
+  RECIPES_WRITE: "recipes:write",
+  FAVORITES_WRITE: "favorites:write",
+  GOALS_WRITE: "goals:write",
+  SETTINGS_WRITE: "settings:write"
 } as const;
 
-export type IntegrationScope = typeof IntegrationScopes[keyof typeof IntegrationScopes];
+export type IntegrationScope = string;
 
-const defaultScopes = Object.values(IntegrationScopes);
+const defaultScopes = [IntegrationScopes.ALL];
 const keyPrefix = "bdoc";
 
 export class IntegrationApiKeyService {
@@ -93,13 +100,13 @@ export class IntegrationApiKeyService {
       id: record.id,
       userId: record.userId,
       provider: record.provider,
-      scopes: this.parseScopes(record.scopesJson),
+      scopes: this.normalizeScopes(record.provider, this.parseScopes(record.scopesJson)),
       user: record.user
     };
   }
 
   hasScope(scopes: string[], required: IntegrationScope) {
-    return scopes.includes(required);
+    return scopes.includes(IntegrationScopes.ALL) || scopes.includes(required);
   }
 
   private generateKey() {
@@ -119,6 +126,12 @@ export class IntegrationApiKeyService {
     }
   }
 
+  private normalizeScopes(provider: string, scopes: string[]) {
+    if (scopes.includes(IntegrationScopes.ALL)) return scopes;
+    if (provider.toLowerCase() === "openclaw") return [IntegrationScopes.ALL, ...scopes];
+    return scopes;
+  }
+
   private constantTimeEqual(left: string, right: string) {
     const leftBuffer = Buffer.from(left);
     const rightBuffer = Buffer.from(right);
@@ -131,7 +144,7 @@ export class IntegrationApiKeyService {
       name: record.name,
       provider: record.provider,
       keyPreview: `${record.keyPrefix}_...${record.keyLast4}`,
-      scopes: this.parseScopes(record.scopesJson),
+      scopes: this.normalizeScopes(record.provider, this.parseScopes(record.scopesJson)),
       lastUsedAt: record.lastUsedAt,
       expiresAt: record.expiresAt,
       revokedAt: record.revokedAt,

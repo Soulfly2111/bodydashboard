@@ -5,19 +5,16 @@ import { z } from "zod";
 import { prisma } from "../../config/prisma.js";
 import { requireAuth } from "../../middleware/auth.js";
 import { requireIntegrationAuth, requireIntegrationScope } from "../../middleware/integrationAuth.js";
+import { ActivityService } from "../../services/activities/ActivityService.js";
 import { IntegrationApiKeyService, IntegrationScopes } from "../../services/integrations/IntegrationApiKeyService.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 
 export const integrationsRouter = Router();
 
 const keys = new IntegrationApiKeyService();
+const activities = new ActivityService();
 
-const scopesSchema = z.array(z.enum([
-  IntegrationScopes.FOODS_WRITE,
-  IntegrationScopes.MEALS_WRITE,
-  IntegrationScopes.WATER_WRITE,
-  IntegrationScopes.WEIGHT_WRITE
-]));
+const scopesSchema = z.array(z.enum(Object.values(IntegrationScopes) as [string, ...string[]]));
 
 const foodSchema = z.object({
   name: z.string().min(1),
@@ -63,6 +60,33 @@ const bodyMetricSchema = z.object({
   message: "At least one body metric is required"
 });
 
+const activitySchema = z.object({
+  typeName: z.string().min(2),
+  date: z.coerce.date().default(new Date()),
+  startTime: z.string().optional().nullable(),
+  endTime: z.string().optional().nullable(),
+  durationMinutes: z.coerce.number().int().positive(),
+  intensity: z.enum(["VERY_LIGHT", "LIGHT", "MEDIUM", "HIGH", "VERY_HIGH"]).default("MEDIUM"),
+  distanceKm: z.coerce.number().nonnegative().optional().nullable(),
+  averageSpeedKmh: z.coerce.number().nonnegative().optional().nullable(),
+  averageHeartRate: z.coerce.number().int().positive().optional().nullable(),
+  maxHeartRate: z.coerce.number().int().positive().optional().nullable(),
+  calories: z.coerce.number().nonnegative().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  steps: z.coerce.number().int().nonnegative().optional().nullable(),
+  elevationGainM: z.coerce.number().nonnegative().optional().nullable(),
+  powerWatts: z.coerce.number().nonnegative().optional().nullable(),
+  cadence: z.coerce.number().nonnegative().optional().nullable(),
+  pace: z.string().optional().nullable(),
+  source: z.string().default("openclaw"),
+  externalId: z.string().optional().nullable(),
+  muscleGroups: z.array(z.string()).optional(),
+  exercisesCount: z.coerce.number().int().nonnegative().optional().nullable(),
+  setsCount: z.coerce.number().int().nonnegative().optional().nullable(),
+  repsCount: z.coerce.number().int().nonnegative().optional().nullable(),
+  trainingVolume: z.coerce.number().nonnegative().optional().nullable()
+});
+
 function clientMeta(req: Request) {
   return { ipAddress: req.ip, userAgent: req.header("user-agent") };
 }
@@ -102,7 +126,7 @@ integrationsRouter.get(
   "/openclaw/health",
   requireIntegrationAuth,
   asyncHandler(async (req, res) => {
-    res.json({ ok: true, provider: req.integration!.provider, scopes: req.integration!.scopes });
+    res.json({ ok: true, provider: req.integration!.provider, scopes: req.integration!.scopes, availableScopes: Object.values(IntegrationScopes) });
   })
 );
 
@@ -187,6 +211,16 @@ integrationsRouter.post(
       create: { userId: req.user!.id, date: startOfDay(body.date), weightKg: body.weightKg, bodyFatPercent: body.bodyFatPercent, muscleMassKg: body.muscleMassKg }
     });
     res.status(201).json(entry);
+  })
+);
+
+integrationsRouter.post(
+  "/openclaw/activities",
+  requireIntegrationAuth,
+  requireIntegrationScope(IntegrationScopes.ACTIVITIES_WRITE),
+  asyncHandler(async (req, res) => {
+    const activity = await activities.create(req.user!.id, { ...activitySchema.parse(req.body), source: "openclaw" });
+    res.status(201).json(activity);
   })
 );
 
