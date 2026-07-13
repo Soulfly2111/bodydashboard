@@ -15,6 +15,21 @@ const dateFormatter = new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "
 
 type MealType = keyof typeof labels;
 type DayMeal = { id: string; type: MealType; items: Array<{ id: string; amount: number; food: Food }> };
+type MealTotals = { calories: number; protein: number; carbs: number; fat: number };
+
+function calculateTotals(items: DayMeal["items"] = []): MealTotals {
+  return items.reduce(
+    (totals, item) => {
+      const factor = item.amount / 100;
+      totals.calories += item.food.caloriesPer100g * factor;
+      totals.protein += item.food.protein * factor;
+      totals.carbs += item.food.carbs * factor;
+      totals.fat += item.food.fat * factor;
+      return totals;
+    },
+    { calories: 0, protein: 0, carbs: 0, fat: 0 }
+  );
+}
 
 export default function Meals() {
   const [selectedDate, setSelectedDate] = useState(today);
@@ -59,19 +74,14 @@ export default function Meals() {
     ...favoriteFoods,
     ...foods.filter((food) => !favoriteFoodIds.has(food.id))
   ];
-  const dayTotals = meals.reduce(
-    (totals, meal) => {
-      meal.items.forEach((item) => {
-        const factor = item.amount / 100;
-        totals.calories += item.food.caloriesPer100g * factor;
-        totals.protein += item.food.protein * factor;
-        totals.carbs += item.food.carbs * factor;
-        totals.fat += item.food.fat * factor;
-      });
-      return totals;
-    },
-    { calories: 0, protein: 0, carbs: 0, fat: 0 }
-  );
+  const dayTotals = meals.reduce((totals, meal) => {
+    const mealTotals = calculateTotals(meal.items);
+    totals.calories += mealTotals.calories;
+    totals.protein += mealTotals.protein;
+    totals.carbs += mealTotals.carbs;
+    totals.fat += mealTotals.fat;
+    return totals;
+  }, { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
   return (
     <div className="space-y-4">
@@ -129,10 +139,19 @@ export default function Meals() {
       <div className="grid items-start gap-4 xl:grid-cols-2">
         {mealTypes.map((type) => {
           const meal = meals.find((item) => item.type === type);
+          const mealTotals = calculateTotals(meal?.items);
           return (
             <Card key={type} className="min-w-0">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 className="font-bold">{labels[type]}</h2>
+              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <h2 className="font-bold">{labels[type]}</h2>
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-slate-500">
+                    <span><span className="font-semibold text-ink dark:text-white">{Math.round(mealTotals.calories)}</span> kcal</span>
+                    <span>P {Math.round(mealTotals.protein)}</span>
+                    <span>C {Math.round(mealTotals.carbs)}</span>
+                    <span>F {Math.round(mealTotals.fat)}</span>
+                  </div>
+                </div>
                 <Button onClick={() => add(type)}><Plus size={18} />Hinzufügen</Button>
               </div>
               <div className="space-y-2">
