@@ -31,6 +31,7 @@ model User {
   trackMuscleMass Boolean     @default(true)
   trackWater   Boolean        @default(true)
   visiblePagesJson String?
+  dashboardWidgetsJson String?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   foods        Food[]

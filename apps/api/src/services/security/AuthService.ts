@@ -89,6 +89,7 @@ export class AuthService {
     trackMuscleMass?: boolean;
     trackWater?: boolean;
     visiblePagesJson?: string | null;
+    dashboardWidgetsJson?: string | null;
   }) {
     return {
       id: user.id,
@@ -106,7 +107,8 @@ export class AuthService {
       trackBodyFat: user.trackBodyFat,
       trackMuscleMass: user.trackMuscleMass,
       trackWater: user.trackWater,
-      visiblePagesJson: user.visiblePagesJson
+      visiblePagesJson: user.visiblePagesJson,
+      dashboardWidgetsJson: user.dashboardWidgetsJson
     };
   }
 }

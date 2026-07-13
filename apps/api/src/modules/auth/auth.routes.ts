@@ -99,12 +99,14 @@ authRouter.put(
       trackBodyFat: z.boolean().optional(),
       trackMuscleMass: z.boolean().optional(),
       trackWater: z.boolean().optional(),
-      visiblePages: z.array(z.string().min(1)).optional()
+      visiblePages: z.array(z.string().min(1)).optional(),
+      dashboardWidgets: z.array(z.string().min(1)).optional()
     }).parse(req.body);
-    const { visiblePages, ...profile } = body;
+    const { visiblePages, dashboardWidgets, ...profile } = body;
     res.json(await users.update(req.user!.id, {
       ...profile,
-      visiblePagesJson: visiblePages ? JSON.stringify([...new Set(visiblePages)]) : undefined
+      visiblePagesJson: visiblePages ? JSON.stringify([...new Set(visiblePages)]) : undefined,
+      dashboardWidgetsJson: dashboardWidgets ? JSON.stringify([...new Set(dashboardWidgets)]) : undefined
     }));
   })
 );

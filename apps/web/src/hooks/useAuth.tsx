@@ -18,6 +18,7 @@ type User = {
   trackMuscleMass?: boolean;
   trackWater?: boolean;
   visiblePagesJson?: string | null;
+  dashboardWidgetsJson?: string | null;
 };
 type AuthContextValue = {
   user: User | null;
