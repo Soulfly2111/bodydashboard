@@ -123,8 +123,7 @@ function parseDashboardWidgets(value: string | null | undefined) {
     const parsed = JSON.parse(value);
     if (!Array.isArray(parsed)) return defaultWidgets;
     const configured = parsed.filter((item): item is DashboardWidgetId => typeof item === "string" && allowed.has(item as DashboardWidgetId));
-    const missing = defaultWidgets.filter((id) => !configured.includes(id));
-    return [...configured, ...missing];
+    return configured;
   } catch {
     return defaultWidgets;
   }
@@ -137,8 +136,7 @@ function parseDashboardMetricCards(value: string | null | undefined) {
     const parsed = JSON.parse(value);
     if (!Array.isArray(parsed)) return defaultMetricCards;
     const configured = parsed.filter((item): item is DashboardMetricCardId => typeof item === "string" && allowed.has(item as DashboardMetricCardId));
-    const missing = defaultMetricCards.filter((id) => !configured.includes(id));
-    return [...configured, ...missing];
+    return configured;
   } catch {
     return defaultMetricCards;
   }
