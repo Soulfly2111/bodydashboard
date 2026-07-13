@@ -19,6 +19,7 @@ type User = {
   trackWater?: boolean;
   visiblePagesJson?: string | null;
   dashboardWidgetsJson?: string | null;
+  dashboardMetricCardsJson?: string | null;
 };
 type AuthContextValue = {
   user: User | null;

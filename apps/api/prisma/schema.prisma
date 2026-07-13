@@ -32,6 +32,7 @@ model User {
   trackWater   Boolean        @default(true)
   visiblePagesJson String?
   dashboardWidgetsJson String?
+  dashboardMetricCardsJson String?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   foods        Food[]

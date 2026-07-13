@@ -100,13 +100,15 @@ authRouter.put(
       trackMuscleMass: z.boolean().optional(),
       trackWater: z.boolean().optional(),
       visiblePages: z.array(z.string().min(1)).optional(),
-      dashboardWidgets: z.array(z.string().min(1)).optional()
+      dashboardWidgets: z.array(z.string().min(1)).optional(),
+      dashboardMetricCards: z.array(z.string().min(1)).optional()
     }).parse(req.body);
-    const { visiblePages, dashboardWidgets, ...profile } = body;
+    const { visiblePages, dashboardWidgets, dashboardMetricCards, ...profile } = body;
     res.json(await users.update(req.user!.id, {
       ...profile,
       visiblePagesJson: visiblePages ? JSON.stringify([...new Set(visiblePages)]) : undefined,
-      dashboardWidgetsJson: dashboardWidgets ? JSON.stringify([...new Set(dashboardWidgets)]) : undefined
+      dashboardWidgetsJson: dashboardWidgets ? JSON.stringify([...new Set(dashboardWidgets)]) : undefined,
+      dashboardMetricCardsJson: dashboardMetricCards ? JSON.stringify([...new Set(dashboardMetricCards)]) : undefined
     }));
   })
 );

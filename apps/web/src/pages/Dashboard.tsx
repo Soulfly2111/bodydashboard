@@ -72,10 +72,32 @@ const defaultWidgets = widgetCatalog.map((widget) => widget.id);
 
 type DashboardWidgetId = typeof defaultWidgets[number];
 
+const metricCatalog = [
+  { id: "consumedCalories", label: "Aufgenommene Kalorien" },
+  { id: "burnedCalories", label: "Verbrauchte Kalorien" },
+  { id: "netCalories", label: "Netto-Kalorien" },
+  { id: "calorieBalance", label: "Kalorienbilanz" },
+  { id: "activitiesToday", label: "Aktivitaeten heute" },
+  { id: "trainingTime", label: "Trainingszeit heute" },
+  { id: "activityCalories", label: "Verbrannte Aktivitaetskalorien" },
+  { id: "protein", label: "Protein" },
+  { id: "fiber", label: "Ballaststoffe" },
+  { id: "weightBmi", label: "Gewicht / BMI", requires: "weight" },
+  { id: "latestPhoto", label: "Letztes Fortschrittsbild" },
+  { id: "abdomenChange", label: "Bauch 30 Tage" },
+  { id: "waistChange", label: "Taille 30 Tage" },
+  { id: "chestChange", label: "Brust 30 Tage" }
+] as const;
+
+const defaultMetricCards = metricCatalog.map((metric) => metric.id);
+
+type DashboardMetricCardId = typeof defaultMetricCards[number];
+
 type TrackingSettings = {
   trackWeight?: boolean;
   trackWater?: boolean;
   dashboardWidgetsJson?: string | null;
+  dashboardMetricCardsJson?: string | null;
 };
 
 type WeekStats = {
@@ -108,6 +130,20 @@ function parseDashboardWidgets(value: string | null | undefined) {
   }
 }
 
+function parseDashboardMetricCards(value: string | null | undefined) {
+  if (!value) return defaultMetricCards;
+  try {
+    const allowed = new Set(defaultMetricCards);
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return defaultMetricCards;
+    const configured = parsed.filter((item): item is DashboardMetricCardId => typeof item === "string" && allowed.has(item as DashboardMetricCardId));
+    const missing = defaultMetricCards.filter((id) => !configured.includes(id));
+    return [...configured, ...missing];
+  } catch {
+    return defaultMetricCards;
+  }
+}
+
 function moveItem<T>(items: T[], index: number, direction: -1 | 1) {
   const nextIndex = index + direction;
   if (nextIndex < 0 || nextIndex >= items.length) return items;
@@ -120,6 +156,7 @@ export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState(today);
   const [customizing, setCustomizing] = useState(false);
   const [widgets, setWidgets] = useState<DashboardWidgetId[]>(defaultWidgets);
+  const [metricCards, setMetricCards] = useState<DashboardMetricCardId[]>(defaultMetricCards);
   const weekStart = mondayOf(selectedDate);
   const weekEnd = shiftDate(weekStart, 6);
   const selectedDateObject = fromDateKey(selectedDate);
@@ -163,6 +200,10 @@ export default function Dashboard() {
     setWidgets(parseDashboardWidgets(settings.dashboardWidgetsJson));
   }, [settings.dashboardWidgetsJson]);
 
+  useEffect(() => {
+    setMetricCards(parseDashboardMetricCards(settings.dashboardMetricCardsJson));
+  }, [settings.dashboardMetricCardsJson]);
+
   const donut = [
     { name: "Protein", value: data.totals.protein, goal: data.goal.protein, color: "#26A69A" },
     { name: "Kohlenhydrate", value: data.totals.carbs, goal: data.goal.carbs, color: "#F4B942" },
@@ -194,6 +235,12 @@ export default function Dashboard() {
     return widgets.filter((id) => !hiddenByTracking.has(id));
   }, [showWater, widgets]);
 
+  const visibleMetricCardIds = useMemo(() => {
+    const hiddenByTracking = new Set<DashboardMetricCardId>();
+    if (!showWeight) hiddenByTracking.add("weightBmi");
+    return metricCards.filter((id) => !hiddenByTracking.has(id));
+  }, [metricCards, showWeight]);
+
   async function addWater(amountMl: number) {
     await api("/water", { method: "POST", body: JSON.stringify({ amountMl, date: selectedDate }) });
     await reload();
@@ -204,11 +251,32 @@ export default function Dashboard() {
     setWidgets((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   }
 
+  function toggleMetricCard(id: DashboardMetricCardId) {
+    setMetricCards((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  }
+
   async function saveDashboardLayout() {
-    await api("/auth/me", { method: "PUT", body: JSON.stringify({ dashboardWidgets: widgets }) });
+    await api("/auth/me", { method: "PUT", body: JSON.stringify({ dashboardWidgets: widgets, dashboardMetricCards: metricCards }) });
     await reloadSettings();
     toast.success("Dashboard gespeichert");
   }
+
+  const metricContent: Record<DashboardMetricCardId, JSX.Element> = {
+    consumedCalories: <MetricCard icon={Flame} label="Aufgenommene Kalorien" value={Math.round(data.energy?.consumedCalories ?? data.totals.calories)} unit="kcal" />,
+    burnedCalories: <MetricCard icon={Activity} label="Verbrauchte Kalorien" value={Math.round(data.energy?.totalExpenditure ?? 0)} unit="kcal" />,
+    netCalories: <MetricCard icon={Flame} label="Netto-Kalorien" value={Math.round(data.energy?.netCalories ?? 0)} unit="kcal" />,
+    calorieBalance: <MetricCard icon={Activity} label="Kalorienbilanz" value={Math.round(data.energy?.calorieBalance ?? 0)} unit={(data.energy?.calorieBalance ?? 0) >= 0 ? "Ueberschuss" : "Defizit"} />,
+    activitiesToday: <MetricCard icon={Activity} label="Aktivitaeten heute" value={data.activities?.count ?? 0} unit="Einheiten" />,
+    trainingTime: <MetricCard icon={Activity} label="Trainingszeit heute" value={data.activities?.durationMinutes ?? 0} unit="min" />,
+    activityCalories: <MetricCard icon={Flame} label="Verbrannte Aktivitaetskalorien" value={Math.round(data.activities?.calories ?? 0)} unit="kcal" />,
+    protein: <MetricCard icon={Beef} label="Protein" value={Math.round(data.totals.protein)} unit="g" />,
+    fiber: <MetricCard icon={Wheat} label="Ballaststoffe" value={Math.round(data.totals.fiber)} unit="g" />,
+    weightBmi: <MetricCard icon={Scale} label="Gewicht / BMI" value={data.weight?.weightKg ?? "-"} unit={data.bmi ? `kg - BMI ${data.bmi}` : "kg"} />,
+    latestPhoto: <MetricCard icon={Images} label="Letztes Fortschrittsbild" value={bodyProgress.latestPhoto?.date?.slice(0, 10) ?? "-"} unit={bodyProgress.latestPhoto?.viewType ?? ""} />,
+    abdomenChange: <MetricCard icon={Ruler} label="Bauch 30 Tage" value={bodyProgress.changes.abdomen30 ?? 0} unit="cm" />,
+    waistChange: <MetricCard icon={Ruler} label="Taille 30 Tage" value={bodyProgress.changes.waist30 ?? 0} unit="cm" />,
+    chestChange: <MetricCard icon={Ruler} label="Brust 30 Tage" value={bodyProgress.changes.chest30 ?? 0} unit="cm" />
+  };
 
   const widgetContent: Record<DashboardWidgetId, JSX.Element> = {
     date: (
@@ -233,20 +301,8 @@ export default function Dashboard() {
     ),
     metrics: (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard icon={Flame} label="Aufgenommene Kalorien" value={Math.round(data.energy?.consumedCalories ?? data.totals.calories)} unit="kcal" />
-        <MetricCard icon={Activity} label="Verbrauchte Kalorien" value={Math.round(data.energy?.totalExpenditure ?? 0)} unit="kcal" />
-        <MetricCard icon={Flame} label="Netto-Kalorien" value={Math.round(data.energy?.netCalories ?? 0)} unit="kcal" />
-        <MetricCard icon={Activity} label="Kalorienbilanz" value={Math.round(data.energy?.calorieBalance ?? 0)} unit={(data.energy?.calorieBalance ?? 0) >= 0 ? "Ueberschuss" : "Defizit"} />
-        <MetricCard icon={Activity} label="Aktivitaeten heute" value={data.activities?.count ?? 0} unit="Einheiten" />
-        <MetricCard icon={Activity} label="Trainingszeit heute" value={data.activities?.durationMinutes ?? 0} unit="min" />
-        <MetricCard icon={Flame} label="Verbrannte Aktivitaetskalorien" value={Math.round(data.activities?.calories ?? 0)} unit="kcal" />
-        <MetricCard icon={Beef} label="Protein" value={Math.round(data.totals.protein)} unit="g" />
-        <MetricCard icon={Wheat} label="Ballaststoffe" value={Math.round(data.totals.fiber)} unit="g" />
-        {showWeight && <MetricCard icon={Scale} label="Gewicht / BMI" value={data.weight?.weightKg ?? "-"} unit={data.bmi ? `kg - BMI ${data.bmi}` : "kg"} />}
-        <MetricCard icon={Images} label="Letztes Fortschrittsbild" value={bodyProgress.latestPhoto?.date?.slice(0, 10) ?? "-"} unit={bodyProgress.latestPhoto?.viewType ?? ""} />
-        <MetricCard icon={Ruler} label="Bauch 30 Tage" value={bodyProgress.changes.abdomen30 ?? 0} unit="cm" />
-        <MetricCard icon={Ruler} label="Taille 30 Tage" value={bodyProgress.changes.waist30 ?? 0} unit="cm" />
-        <MetricCard icon={Ruler} label="Brust 30 Tage" value={bodyProgress.changes.chest30 ?? 0} unit="cm" />
+        {visibleMetricCardIds.map((id) => <div key={id}>{metricContent[id]}</div>)}
+        {!visibleMetricCardIds.length && <Card className="sm:col-span-2 xl:col-span-4"><p className="text-sm text-slate-500">Alle Kennzahlen sind ausgeblendet.</p></Card>}
       </div>
     ),
     week: (
@@ -431,6 +487,31 @@ export default function Dashboard() {
               );
             })}
           </div>
+          {widgets.includes("metrics") && (
+            <div className="mt-5 border-t border-slate-200 pt-5 dark:border-slate-800">
+              <h3 className="mb-3 font-semibold">Kennzahlen anzeigen</h3>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {metricCatalog.map((metric) => {
+                  const checked = metricCards.includes(metric.id);
+                  const disabledByTracking = "requires" in metric && metric.requires === "weight" && !showWeight;
+                  return (
+                    <label key={metric.id} className={`flex items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800 ${disabledByTracking ? "opacity-50" : ""}`}>
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">{metric.label}</span>
+                        {disabledByTracking && <span className="block text-xs text-slate-500">Gewichttracking ist deaktiviert.</span>}
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={disabledByTracking}
+                        onChange={() => toggleMetricCard(metric.id)}
+                      />
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </Card>
       )}
 
