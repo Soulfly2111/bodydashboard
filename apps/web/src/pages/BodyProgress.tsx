@@ -35,6 +35,8 @@ export default function BodyProgress() {
   const { data: types } = useApi<MeasurementType[]>("/body-progress/measurement-types", []);
   const { data: stats, reload: reloadStats } = useApi<BodyProgressStatistics>("/body-progress/statistics", { latestPhoto: null, latestMeasurements: {}, changes: {}, ratios: { waistToHip: null, waistToHeight: null }, series: {}, photoCount: 0 });
   const [analysisText, setAnalysisText] = useState("");
+  const selectedMeasurementType = types.find((type) => type.name === measurement.measurementType);
+  const measurementUnit = selectedMeasurementType?.unit ?? "cm";
 
   const chartData = useMemo(() => stats.series["Bauchumfang"] ?? stats.series["Taillenumfang"] ?? [], [stats.series]);
 
@@ -104,7 +106,7 @@ export default function BodyProgress() {
 
   async function saveMeasurement(event: FormEvent) {
     event.preventDefault();
-    await api("/body-progress/measurements", { method: "POST", body: JSON.stringify({ ...measurement, value: Number(measurement.value), unit: "cm" }) });
+    await api("/body-progress/measurements", { method: "POST", body: JSON.stringify({ ...measurement, value: Number(measurement.value), unit: measurementUnit }) });
     setMeasurement({ date: today, measurementType: measurement.measurementType, value: "", notes: "" });
     await reloadMeasurements();
     await reloadStats();
@@ -132,9 +134,10 @@ export default function BodyProgress() {
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <Card><p className="text-sm text-slate-500">Fotos</p><p className="mt-2 text-3xl font-bold">{stats.photoCount}</p></Card>
         <Card><p className="text-sm text-slate-500">Bauch 30 Tage</p><p className="mt-2 text-3xl font-bold">{stats.changes.abdomen30 ?? 0} cm</p></Card>
+        <Card><p className="text-sm text-slate-500">Hautfalte 30 Tage</p><p className="mt-2 text-3xl font-bold">{stats.changes.skinfold30 ?? 0} mm</p></Card>
         <Card><p className="text-sm text-slate-500">Taille 30 Tage</p><p className="mt-2 text-3xl font-bold">{stats.changes.waist30 ?? 0} cm</p></Card>
         <Card><p className="text-sm text-slate-500">Taille/Hüfte</p><p className="mt-2 text-3xl font-bold">{stats.ratios.waistToHip ?? "-"}</p></Card>
       </div>
@@ -196,7 +199,7 @@ export default function BodyProgress() {
             <select className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-800 dark:bg-slate-950" value={measurement.measurementType} onChange={(event) => setMeasurement({ ...measurement, measurementType: event.target.value })}>
               {types.map((type) => <option key={type.slug} value={type.name}>{type.name}</option>)}
             </select>
-            <Input type="number" step="0.1" value={measurement.value} onChange={(event) => setMeasurement({ ...measurement, value: event.target.value })} placeholder="cm" />
+            <Input type="number" step="0.1" value={measurement.value} onChange={(event) => setMeasurement({ ...measurement, value: event.target.value })} placeholder={measurementUnit} />
             <Input className="sm:col-span-2" value={measurement.notes} onChange={(event) => setMeasurement({ ...measurement, notes: event.target.value })} placeholder="Notiz" />
             <Button><Save size={18} />Speichern</Button>
           </form>

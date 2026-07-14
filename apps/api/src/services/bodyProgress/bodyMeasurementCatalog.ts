@@ -1,5 +1,6 @@
 export const bodyMeasurementTypes = [
   { slug: "abdomen", name: "Bauchumfang", sortOrder: 10 },
+  { slug: "skinfold-caliper", name: "Hautfaltendicke", unit: "mm", sortOrder: 15 },
   { slug: "chest", name: "Brustumfang", sortOrder: 20 },
   { slug: "waist", name: "Taillenumfang", sortOrder: 30 },
   { slug: "hip", name: "Hüftumfang", sortOrder: 40 },

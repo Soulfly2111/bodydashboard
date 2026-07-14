@@ -28,9 +28,11 @@ export class BodyProgressStatisticsService {
       latestMeasurements: Object.fromEntries(latestByType),
       changes: {
         abdomen30: delta("Bauchumfang", 30),
+        skinfold30: delta("Hautfaltendicke", 30),
         waist30: delta("Taillenumfang", 30),
         chest30: delta("Brustumfang", 30),
         abdomen90: delta("Bauchumfang", 90),
+        skinfold90: delta("Hautfaltendicke", 90),
         waist90: delta("Taillenumfang", 90)
       },
       ratios: {

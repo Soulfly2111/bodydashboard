@@ -95,8 +95,8 @@ async function seedBodyMeasurementTypes() {
   for (const type of bodyMeasurementTypes) {
     await prisma.bodyMeasurementType.upsert({
       where: { slug: type.slug },
-      update: { name: type.name, unit: "cm", sortOrder: type.sortOrder },
-      create: { ...type, unit: "cm" }
+      update: { name: type.name, unit: type.unit ?? "cm", sortOrder: type.sortOrder },
+      create: { ...type, unit: type.unit ?? "cm" }
     });
   }
 }
@@ -155,6 +155,7 @@ async function seedChristophData(userId: string) {
   await prisma.bodyMeasurement.deleteMany({ where: { userId, source: "seed" } });
   const measurementSeeds = [
     ["Bauchumfang", 106],
+    ["Hautfaltendicke", 22],
     ["Taillenumfang", 99],
     ["Brustumfang", 112],
     ["Hüftumfang", 104],
@@ -173,7 +174,7 @@ async function seedChristophData(userId: string) {
           date,
           measurementType,
           value: Math.round((base + trend) * 10) / 10,
-          unit: "cm",
+          unit: measurementType === "Hautfaltendicke" ? "mm" : "cm",
           source: "seed",
           confidence: 100,
           confirmedByUser: true

@@ -31,7 +31,7 @@ export class BodyMeasurementService {
         measurementTypeId: type?.id,
         measurementType: type?.name ?? input.measurementType,
         value: input.value,
-        unit: input.unit ?? "cm",
+        unit: input.unit ?? type?.unit ?? "cm",
         source: input.source ?? "manual",
         confidence: input.confidence,
         confirmedByUser: input.confirmedByUser ?? true,

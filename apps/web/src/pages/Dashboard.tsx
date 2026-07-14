@@ -85,6 +85,7 @@ const metricCatalog = [
   { id: "weightBmi", label: "Gewicht / BMI", requires: "weight" },
   { id: "latestPhoto", label: "Letztes Fortschrittsbild" },
   { id: "abdomenChange", label: "Bauch 30 Tage" },
+  { id: "skinfoldChange", label: "Hautfalte 30 Tage" },
   { id: "waistChange", label: "Taille 30 Tage" },
   { id: "chestChange", label: "Brust 30 Tage" }
 ] as const;
@@ -272,6 +273,7 @@ export default function Dashboard() {
     weightBmi: <MetricCard icon={Scale} label="Gewicht / BMI" value={data.weight?.weightKg ?? "-"} unit={data.bmi ? `kg - BMI ${data.bmi}` : "kg"} />,
     latestPhoto: <MetricCard icon={Images} label="Letztes Fortschrittsbild" value={bodyProgress.latestPhoto?.date?.slice(0, 10) ?? "-"} unit={bodyProgress.latestPhoto?.viewType ?? ""} />,
     abdomenChange: <MetricCard icon={Ruler} label="Bauch 30 Tage" value={bodyProgress.changes.abdomen30 ?? 0} unit="cm" />,
+    skinfoldChange: <MetricCard icon={Ruler} label="Hautfalte 30 Tage" value={bodyProgress.changes.skinfold30 ?? 0} unit="mm" />,
     waistChange: <MetricCard icon={Ruler} label="Taille 30 Tage" value={bodyProgress.changes.waist30 ?? 0} unit="cm" />,
     chestChange: <MetricCard icon={Ruler} label="Brust 30 Tage" value={bodyProgress.changes.chest30 ?? 0} unit="cm" />
   };
