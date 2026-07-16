@@ -21,7 +21,6 @@ import {
   Wheat
 } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
-import { MetricCard } from "../components/dashboard/MetricCard";
 import { ProgressRing } from "../components/dashboard/ProgressRing";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -260,22 +259,22 @@ export default function Dashboard() {
     toast.success("Dashboard gespeichert");
   }
 
-  const metricContent: Record<DashboardMetricCardId, JSX.Element> = {
-    consumedCalories: <MetricCard icon={Flame} label="Aufgenommene Kalorien" value={Math.round(data.energy?.consumedCalories ?? data.totals.calories)} unit="kcal" />,
-    burnedCalories: <MetricCard icon={Activity} label="Verbrauchte Kalorien" value={Math.round(data.energy?.totalExpenditure ?? 0)} unit="kcal" />,
-    netCalories: <MetricCard icon={Flame} label="Netto-Kalorien" value={Math.round(data.energy?.netCalories ?? 0)} unit="kcal" />,
-    calorieBalance: <MetricCard icon={Activity} label="Kalorienbilanz" value={Math.round(data.energy?.calorieBalance ?? 0)} unit={(data.energy?.calorieBalance ?? 0) >= 0 ? "Ueberschuss" : "Defizit"} />,
-    activitiesToday: <MetricCard icon={Activity} label="Aktivitaeten heute" value={data.activities?.count ?? 0} unit="Einheiten" />,
-    trainingTime: <MetricCard icon={Activity} label="Trainingszeit heute" value={data.activities?.durationMinutes ?? 0} unit="min" />,
-    activityCalories: <MetricCard icon={Flame} label="Verbrannte Aktivitaetskalorien" value={Math.round(data.activities?.calories ?? 0)} unit="kcal" />,
-    protein: <MetricCard icon={Beef} label="Protein" value={Math.round(data.totals.protein)} unit="g" />,
-    fiber: <MetricCard icon={Wheat} label="Ballaststoffe" value={Math.round(data.totals.fiber)} unit="g" />,
-    weightBmi: <MetricCard icon={Scale} label="Gewicht / BMI" value={data.weight?.weightKg ?? "-"} unit={data.bmi ? `kg - BMI ${data.bmi}` : "kg"} />,
-    latestPhoto: <MetricCard icon={Images} label="Letztes Fortschrittsbild" value={bodyProgress.latestPhoto?.date?.slice(0, 10) ?? "-"} unit={bodyProgress.latestPhoto?.viewType ?? ""} />,
-    abdomenChange: <MetricCard icon={Ruler} label="Bauch 30 Tage" value={bodyProgress.changes.abdomen30 ?? 0} unit="cm" />,
-    skinfoldChange: <MetricCard icon={Ruler} label="Hautfalte 30 Tage" value={bodyProgress.changes.skinfold30 ?? 0} unit="mm" />,
-    waistChange: <MetricCard icon={Ruler} label="Taille 30 Tage" value={bodyProgress.changes.waist30 ?? 0} unit="cm" />,
-    chestChange: <MetricCard icon={Ruler} label="Brust 30 Tage" value={bodyProgress.changes.chest30 ?? 0} unit="cm" />
+  const metricContent: Record<DashboardMetricCardId, { icon: typeof Flame; label: string; value: string | number; unit?: string }> = {
+    consumedCalories: { icon: Flame, label: "Aufgenommene Kalorien", value: Math.round(data.energy?.consumedCalories ?? data.totals.calories), unit: "kcal" },
+    burnedCalories: { icon: Activity, label: "Verbrauchte Kalorien", value: Math.round(data.energy?.totalExpenditure ?? 0), unit: "kcal" },
+    netCalories: { icon: Flame, label: "Netto-Kalorien", value: Math.round(data.energy?.netCalories ?? 0), unit: "kcal" },
+    calorieBalance: { icon: Activity, label: "Kalorienbilanz", value: Math.round(data.energy?.calorieBalance ?? 0), unit: (data.energy?.calorieBalance ?? 0) >= 0 ? "Ueberschuss" : "Defizit" },
+    activitiesToday: { icon: Activity, label: "Aktivitaeten heute", value: data.activities?.count ?? 0, unit: "Einheiten" },
+    trainingTime: { icon: Activity, label: "Trainingszeit heute", value: data.activities?.durationMinutes ?? 0, unit: "min" },
+    activityCalories: { icon: Flame, label: "Verbrannte Aktivitaetskalorien", value: Math.round(data.activities?.calories ?? 0), unit: "kcal" },
+    protein: { icon: Beef, label: "Protein", value: Math.round(data.totals.protein), unit: "g" },
+    fiber: { icon: Wheat, label: "Ballaststoffe", value: Math.round(data.totals.fiber), unit: "g" },
+    weightBmi: { icon: Scale, label: "Gewicht / BMI", value: data.weight?.weightKg ?? "-", unit: data.bmi ? `kg - BMI ${data.bmi}` : "kg" },
+    latestPhoto: { icon: Images, label: "Letztes Fortschrittsbild", value: bodyProgress.latestPhoto?.date?.slice(0, 10) ?? "-", unit: bodyProgress.latestPhoto?.viewType ?? "" },
+    abdomenChange: { icon: Ruler, label: "Bauch 30 Tage", value: bodyProgress.changes.abdomen30 ?? 0, unit: "cm" },
+    skinfoldChange: { icon: Ruler, label: "Hautfalte 30 Tage", value: bodyProgress.changes.skinfold30 ?? 0, unit: "mm" },
+    waistChange: { icon: Ruler, label: "Taille 30 Tage", value: bodyProgress.changes.waist30 ?? 0, unit: "cm" },
+    chestChange: { icon: Ruler, label: "Brust 30 Tage", value: bodyProgress.changes.chest30 ?? 0, unit: "cm" }
   };
 
   const widgetContent: Record<DashboardWidgetId, JSX.Element> = {
@@ -300,10 +299,40 @@ export default function Dashboard() {
       </Card>
     ),
     metrics: (
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {visibleMetricCardIds.map((id) => <div key={id}>{metricContent[id]}</div>)}
-        {!visibleMetricCardIds.length && <Card className="sm:col-span-2 xl:col-span-4"><p className="text-sm text-slate-500">Alle Kennzahlen sind ausgeblendet.</p></Card>}
-      </div>
+      <Card>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-slate-500">Uebersicht</p>
+            <h2 className="font-bold">Kennzahlen</h2>
+          </div>
+          <Activity size={20} className="text-mint" />
+        </div>
+        {visibleMetricCardIds.length ? (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {visibleMetricCardIds.map((id) => {
+              const metric = metricContent[id];
+              const Icon = metric.icon;
+              return (
+                <div key={id} className="rounded-lg border border-slate-200 bg-slate-100 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm text-slate-500 dark:text-slate-400">{metric.label}</p>
+                      <p className="mt-2 text-2xl font-bold">
+                        {metric.value}<span className="text-sm font-medium text-slate-500"> {metric.unit}</span>
+                      </p>
+                    </div>
+                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-mint/12 text-mint">
+                      <Icon size={20} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="rounded-lg border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-slate-800">Alle Kennzahlen sind ausgeblendet.</p>
+        )}
+      </Card>
     ),
     week: (
       <Card>
