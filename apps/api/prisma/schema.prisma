@@ -579,3 +579,22 @@ model AuditLog {
   @@index([actorUserId])
   @@index([action])
 }
+
+model WhatsAppInboundMessage {
+  id                String   @id @default(cuid())
+  providerMessageId String   @unique
+  externalUserId    String
+  messageType       String
+  textContent       String?
+  rawPayloadJson    String
+  processingStatus  String   @default("RECEIVED")
+  receivedAt        DateTime
+  processedAt       DateTime?
+  processingError   String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([externalUserId])
+  @@index([processingStatus])
+  @@index([receivedAt])
+}

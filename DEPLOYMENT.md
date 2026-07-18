@@ -59,6 +59,8 @@ WEB_ORIGIN=https://bodydashboard.de
 DATABASE_URL=file:/var/lib/bodydashboard/bodydashboard.db
 JWT_SECRET=<long-random-secret>
 ENCRYPTION_KEY=<32-plus-random-characters>
+META_WHATSAPP_VERIFY_TOKEN=<long-random-value-you-choose>
+META_WHATSAPP_APP_SECRET=<app-secret-from-meta>
 ```
 
 Wenn HTTPS noch nicht aktiv ist, nutze vorübergehend:
@@ -73,6 +75,16 @@ Danach:
 apachectl configtest
 systemctl reload apache2
 ```
+
+## WhatsApp-Webhook
+
+Der öffentliche Callback-Endpunkt ist:
+
+```text
+https://bodydashboard.de/api/webhooks/whatsapp
+```
+
+Trage bei Meta als Verifizierungstoken exakt den Wert aus `META_WHATSAPP_VERIFY_TOKEN` ein. Der POST-Endpunkt akzeptiert ausschließlich Ereignisse mit gültigem `X-Hub-Signature-256`, speichert einzelne Nachrichten idempotent anhand der Meta-Nachrichten-ID und ignoriert reine Status-Updates. Das App Secret gehört nur in `/etc/bodydashboard/bodydashboard.env`, niemals in GitHub oder den Quellcode.
 
 ## GitHub Secrets
 

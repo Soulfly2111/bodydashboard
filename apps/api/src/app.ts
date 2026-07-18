@@ -22,13 +22,20 @@ import { recipesRouter } from "./modules/recipes/recipes.routes.js";
 import { statsRouter } from "./modules/stats/stats.routes.js";
 import { waterRouter } from "./modules/water/water.routes.js";
 import { weightRouter } from "./modules/weight/weight.routes.js";
+import { whatsappWebhookRouter } from "./modules/whatsapp/whatsappWebhook.routes.js";
 
 export function createApp() {
   const app = express();
   app.use(helmet());
   app.use(cors({ origin: env.WEB_ORIGIN, credentials: true }));
-  app.use(express.json({ limit: "12mb" }));
+  app.use(express.json({
+    limit: "12mb",
+    verify: (req, _res, buffer) => {
+      (req as express.Request & { rawBody?: Buffer }).rawBody = Buffer.from(buffer);
+    }
+  }));
   app.use(pinoHttp({ logger }));
+  app.use("/api/webhooks/whatsapp", whatsappWebhookRouter);
   app.use(rateLimit({ windowMs: 60_000, limit: 120 }));
 
   app.get("/api/health", (_req, res) => res.json({ ok: true }));
