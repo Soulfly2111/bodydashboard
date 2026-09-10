@@ -1,5 +1,6 @@
 import { CalendarDays, Check, ChevronLeft, ChevronRight, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -10,7 +11,9 @@ import type { Food } from "../types/domain";
 
 const mealTypes = ["BREAKFAST", "LUNCH", "DINNER", "SNACK"] as const;
 const labels = { BREAKFAST: "Frühstück", LUNCH: "Mittagessen", DINNER: "Abendessen", SNACK: "Snacks" };
-const today = new Date().toISOString().slice(0, 10);
+function toDateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
 const dateFormatter = new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" });
 
 type MealType = keyof typeof labels;
@@ -32,7 +35,19 @@ function calculateTotals(items: DayMeal["items"] = []): MealTotals {
 }
 
 export default function Meals() {
-  const [selectedDate, setSelectedDate] = useState(today);
+  const today = toDateKey(new Date());
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedDate = searchParams.get("date") ?? "";
+  const parsedDate = new Date(`${requestedDate}T12:00:00`);
+  const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) && !Number.isNaN(parsedDate.getTime()) && toDateKey(parsedDate) === requestedDate ? requestedDate : today;
+  function setSelectedDate(date: string) {
+    setEditing(null);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set("date", date || today);
+      return next;
+    });
+  }
   const [foodId, setFoodId] = useState("");
   const [amount, setAmount] = useState(100);
   const [editing, setEditing] = useState<{ id: string; foodId: string; amount: number } | null>(null);
@@ -64,7 +79,7 @@ export default function Meals() {
   function shiftDay(days: number) {
     const date = new Date(`${selectedDate}T12:00:00`);
     date.setDate(date.getDate() + days);
-    setSelectedDate(date.toISOString().slice(0, 10));
+    setSelectedDate(toDateKey(date));
   }
 
   const isToday = selectedDate === today;

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   Activity,
@@ -312,8 +313,8 @@ export default function Dashboard() {
             {visibleMetricCardIds.map((id) => {
               const metric = metricContent[id];
               const Icon = metric.icon;
-              return (
-                <div key={id} className="rounded-lg border border-slate-200 bg-slate-100 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+              const className = "rounded-lg border border-slate-200 bg-slate-100 p-4 dark:border-slate-800 dark:bg-slate-900/70";
+              const content = (
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm text-slate-500 dark:text-slate-400">{metric.label}</p>
@@ -325,8 +326,12 @@ export default function Dashboard() {
                       <Icon size={20} />
                     </div>
                   </div>
-                </div>
               );
+              return id === "consumedCalories" ? (
+                <Link key={id} to={`/meals?date=${selectedDate}`} aria-label={`Aufgenommene Kalorien: Mahlzeiten vom ${dateFormatter.format(selectedDateObject)} anzeigen`} className={`${className} block transition-colors hover:border-mint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint dark:hover:border-mint`}>
+                  {content}
+                </Link>
+              ) : <div key={id} className={className}>{content}</div>;
             })}
           </div>
         ) : (
