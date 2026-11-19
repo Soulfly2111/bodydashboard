@@ -1,0 +1,18 @@
+[Unit]
+Description=Bodydashboard MCP Server (HTTP, fuer ChatGPT)
+After=network.target bodydashboard-api.service
+
+[Service]
+Type=simple
+User=bodydashboard
+Group=bodydashboard
+WorkingDirectory=/opt/bodydashboard-mcp
+EnvironmentFile=/etc/bodydashboard-mcp.env
+ExecStart=/usr/bin/node /opt/bodydashboard-mcp/server.bundle.js
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

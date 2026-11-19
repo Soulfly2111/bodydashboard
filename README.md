@@ -1,5 +1,8 @@
 # Bodydashboard
 
+Der separat betriebene MCP-Server ist unter [apps/mcp](apps/mcp/README.md)
+versioniert. Dort stehen Build, Konfiguration und die bestehende Server-Anbindung.
+
 Moderne, responsive Webanwendung zum Tracken von Ernährung, Makronährstoffen, Wasser, Gewicht, Rezepten und Zielen.
 
 ## Stack
