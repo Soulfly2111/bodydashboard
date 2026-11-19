@@ -54,9 +54,51 @@ model User {
   passwordResetTokens PasswordResetToken[]
   auditLogs     AuditLog[]
   integrationApiKeys IntegrationApiKey[]
+  supplements Supplement[]
+  supplementEntries SupplementEntry[]
 
   @@index([role])
   @@index([status])
+}
+
+model Supplement {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  defaultKey String?
+  name String
+  brand String?
+  unit String
+  defaultAmount Float?
+  color String @default("#00d4df")
+  archived Boolean @default(false)
+  calories Float?
+  protein Float?
+  fat Float?
+  carbs Float?
+  createdAt DateTime @default(now())
+  entries SupplementEntry[]
+  @@unique([userId, defaultKey])
+  @@index([userId])
+}
+
+model SupplementEntry {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  supplementId String
+  supplement Supplement @relation(fields: [supplementId], references: [id])
+  date String
+  amount Float
+  unit String
+  calories Float?
+  protein Float?
+  fat Float?
+  carbs Float?
+  externalId String?
+  createdAt DateTime @default(now())
+  @@unique([userId, externalId])
+  @@index([userId, date])
 }
 
 model IntegrationApiKey {

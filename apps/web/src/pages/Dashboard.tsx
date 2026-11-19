@@ -152,7 +152,7 @@ function moveItem<T>(items: T[], index: number, direction: -1 | 1) {
 }
 
 export default function Dashboard() {
-  const [selectedDate, setSelectedDate] = useState(today);
+  const [selectedDate, setSelectedDate] = useState(() => new URLSearchParams(window.location.search).get("date")?.match(/^\d{4}-\d{2}-\d{2}$/)?.[0] ?? today);
   const [customizing, setCustomizing] = useState(false);
   const [widgets, setWidgets] = useState<DashboardWidgetId[]>(defaultWidgets);
   const [metricCards, setMetricCards] = useState<DashboardMetricCardId[]>(defaultMetricCards);
@@ -160,7 +160,7 @@ export default function Dashboard() {
   const weekEnd = shiftDate(weekStart, 6);
   const selectedDateObject = fromDateKey(selectedDate);
   const selectedDateLabel = selectedDate === today ? "Heute" : dateFormatter.format(selectedDateObject);
-  const { data, reload } = useApi<DayStats>(`/stats/day/${selectedDate}`, {
+  const { data, reload } = useApi<DayStats & { missingNutritionCount?: number }>(`/stats/day/${selectedDate}`, {
     totals: { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
     waterMl: 0,
     bmi: null,
@@ -479,6 +479,8 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
+      <Link to="/" className="text-sm text-teal-600">Zur Makro-Übersicht</Link>
+      {!!data.missingNutritionCount && <p role="status" className="rounded-lg border border-amber-300 p-3 text-sm text-amber-700">Supplement-Nährwerte für {data.missingNutritionCount} Einnahmen fehlen ganz oder teilweise. Angezeigt werden bekannte Beiträge.</p>}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-wide text-slate-500">Dashboard</p>

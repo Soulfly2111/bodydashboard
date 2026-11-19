@@ -1,12 +1,17 @@
+import { dateSchema, supplementTotals } from "../../services/supplements/supplements.js";
+import { overview } from "../../services/supplements/overview.js";
 import { addDays, endOfDay, format, startOfDay, subDays } from "date-fns";
 import { Router } from "express";
 import { prisma } from "../../config/prisma.js";
 import { requireAuth } from "../../middleware/auth.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
-import { emptyTotals, roundTotals, totalsForItems } from "../../utils/nutrition.js";
+import { addFoodAmount, emptyTotals, roundTotals } from "../../utils/nutrition.js";
 
 export const statsRouter = Router();
 statsRouter.use(requireAuth);
+statsRouter.get("/overview", asyncHandler(async (req, res) => {
+  res.json(await overview(req.user!.id, req.query.end ? dateSchema.parse(req.query.end) : undefined));
+}));
 
 function basalMetabolicRate(weightKg?: number | null) {
   return Math.round((weightKg ?? 75) * 22);
@@ -39,6 +44,9 @@ statsRouter.get(
     }, emptyTotals());
     const waterMl = water.reduce((sum, item) => sum + item.amountMl, 0);
     const bmi = weight?.weightKg && user?.heightCm ? weight.weightKg / Math.pow(user.heightCm / 100, 2) : null;
+    const supplementEntries = await prisma.supplementEntry.findMany({ where: { userId: req.user!.id, date: dateSchema.parse(req.params.date) } });
+    const supplements = supplementTotals(supplementEntries);
+    for (const key of ["calories", "protein", "fat", "carbs"] as const) totals[key] += supplements[key];
     const roundedTotals = roundTotals(totals);
     const activityCalories = Math.round(activities.reduce((sum, item) => sum + item.calories, 0));
     const trainingMinutes = activities.reduce((sum, item) => sum + item.durationMinutes, 0);
@@ -47,6 +55,7 @@ statsRouter.get(
     const calorieBalance = Math.round(roundedTotals.calories - totalExpenditure);
     res.json({
       totals: roundedTotals,
+      missingNutritionCount: supplements.missingNutritionCount,
       waterMl,
       weight,
       bmi: bmi ? Math.round(bmi * 10) / 10 : null,
@@ -84,6 +93,7 @@ statsRouter.get(
       prisma.weightEntry.findMany({ where: { userId: req.user!.id, date: { gte: start, lte: endOfDay(end) } }, orderBy: { date: "asc" } }),
       prisma.activity.findMany({ where: { userId: req.user!.id, date: { gte: start, lte: endOfDay(end) } } })
     ]);
+    const supplementEntries = await prisma.supplementEntry.findMany({ where: { userId: req.user!.id, date: { gte: format(start, "yyyy-MM-dd"), lte: format(end, "yyyy-MM-dd") } } });
     const days = Array.from({ length: 7 }, (_, index) => {
       const day = addDays(start, index);
       const dateKey = format(day, "yyyy-MM-dd");
@@ -91,18 +101,11 @@ statsRouter.get(
       const waterMl = water.filter((entry) => format(entry.date, "yyyy-MM-dd") === dateKey).reduce((sum, entry) => sum + entry.amountMl, 0);
       const weight = weights.find((entry) => format(entry.date, "yyyy-MM-dd") === dateKey);
       const dayActivities = activities.filter((activity) => format(activity.date, "yyyy-MM-dd") === dateKey);
-      const totals = dayMeals.reduce((acc, meal) => {
-        const mealTotals = totalsForItems(meal.items);
-        acc.calories += mealTotals.calories;
-        acc.protein += mealTotals.protein;
-        acc.carbs += mealTotals.carbs;
-        acc.fat += mealTotals.fat;
-        acc.fiber += mealTotals.fiber;
-        acc.sugar += mealTotals.sugar;
-        acc.salt += mealTotals.salt;
-        return acc;
-      }, emptyTotals());
+      const totals = dayMeals.flatMap(meal => meal.items).reduce((total, item) => addFoodAmount(total, item.food, item.amount), emptyTotals());
+      const supplements = supplementTotals(supplementEntries.filter(e => e.date === dateKey));
+      for (const key of ["calories", "protein", "fat", "carbs"] as const) totals[key] += supplements[key];
       return {
+        missingNutritionCount: supplements.missingNutritionCount,
         date: dateKey,
         ...roundTotals(totals),
         waterMl,

@@ -4,6 +4,8 @@ import { AuditLogService } from "../security/AuditLogService.js";
 
 export const IntegrationScopes = {
   ALL: "*",
+  SUPPLEMENTS_READ: "supplements:read",
+  SUPPLEMENTS_WRITE: "supplements:write",
   FOODS_WRITE: "foods:write",
   MEALS_WRITE: "meals:write",
   WATER_WRITE: "water:write",
@@ -128,7 +130,7 @@ export class IntegrationApiKeyService {
 
   private normalizeScopes(provider: string, scopes: string[]) {
     if (scopes.includes(IntegrationScopes.ALL)) return scopes;
-    if (provider.toLowerCase() === "openclaw") return [IntegrationScopes.ALL, ...scopes];
+    // Respect explicitly granted scopes; the provider name is not a permission.
     return scopes;
   }
 

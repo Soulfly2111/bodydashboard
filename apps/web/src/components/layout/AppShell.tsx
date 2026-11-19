@@ -1,11 +1,12 @@
-import { Activity, Apple, CalendarDays, Camera, Droplet, Dumbbell, Home, Images, Menu, Moon, Scale, Settings, Shield, Soup, Sun } from "lucide-react";
-import { NavLink, Navigate, Outlet } from "react-router-dom";
+import { Pill, Activity, Apple, CalendarDays, Camera, Droplet, Dumbbell, Home, Images, Menu, Moon, Scale, Settings, Shield, Soup, Sun } from "lucide-react";
+import { NavLink, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { cn } from "../../lib/cn";
 import { useAuth } from "../../hooks/useAuth";
 
 const nav = [
   { id: "dashboard", to: "/", label: "Dashboard", icon: Home, alwaysVisible: true },
+  { id: "supplements", to: "/supplements", label: "Supplements", icon: Pill, alwaysVisible: true },
   { id: "foods", to: "/foods", label: "Lebensmittel", icon: Apple },
   { id: "meals", to: "/meals", label: "Mahlzeiten", icon: Soup },
   { id: "activities", to: "/activities", label: "Aktivitäten", icon: Activity },
@@ -31,6 +32,7 @@ function parseVisiblePages(value?: string | null) {
 
 export function AppShell() {
   const { user } = useAuth();
+  const isOverview = useLocation().pathname === "/";
   const [dark, setDark] = useState(() => localStorage.getItem("macroflow.theme") === "dark");
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
 
@@ -51,7 +53,7 @@ export function AppShell() {
   const secondaryMobileNav = visibleNav.slice(4);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className={cn("min-h-screen bg-slate-50 dark:bg-slate-950", isOverview && "dark !bg-[#020f17] text-slate-100")}>
       <aside className="fixed bottom-0 z-30 w-full border-t border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 lg:bottom-auto lg:left-0 lg:top-0 lg:h-full lg:w-64 lg:border-r lg:border-t-0">
         <div className="hidden h-16 items-center gap-3 px-5 lg:flex">
           <div className="grid h-10 w-10 place-items-center rounded-lg bg-ink text-white dark:bg-mint dark:text-slate-950">
@@ -70,7 +72,7 @@ export function AppShell() {
               end={item.to === "/"}
               className={({ isActive }) =>
                 cn(
-                  "flex min-w-16 flex-col items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium text-slate-500 transition lg:min-w-0 lg:flex-row lg:text-sm",
+                  "flex min-w-16 flex-col items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 transition lg:min-w-0 lg:flex-row lg:text-sm",
                   isActive && "bg-mint/12 text-mint"
                 )
               }
@@ -93,7 +95,7 @@ export function AppShell() {
                     onClick={() => setMobileMoreOpen(false)}
                     className={({ isActive }) =>
                       cn(
-                        "flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium text-slate-500 transition",
+                        "flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium text-slate-500 dark:text-slate-400 transition",
                         isActive && "bg-mint/12 text-mint"
                       )
                     }
@@ -114,7 +116,7 @@ export function AppShell() {
                 onClick={() => setMobileMoreOpen(false)}
                 className={({ isActive }) =>
                   cn(
-                    "grid min-h-[58px] min-w-0 place-items-center gap-1 rounded-lg px-1 py-1 text-[0.65rem] font-medium leading-none text-slate-500 transition",
+                    "grid min-h-[58px] min-w-0 place-items-center gap-1 rounded-lg px-1 py-1 text-[0.65rem] font-medium leading-none text-slate-500 dark:text-slate-400 transition",
                     isActive && "bg-mint/12 text-mint"
                   )
                 }
@@ -127,7 +129,7 @@ export function AppShell() {
               type="button"
               aria-label="Mehr Navigation"
               className={cn(
-                "grid min-h-[58px] min-w-0 place-items-center gap-1 rounded-lg px-1 py-1 text-[0.65rem] font-medium leading-none text-slate-500 transition",
+                "grid min-h-[58px] min-w-0 place-items-center gap-1 rounded-lg px-1 py-1 text-[0.65rem] font-medium leading-none text-slate-500 dark:text-slate-400 transition",
                 mobileMoreOpen && "bg-mint/12 text-mint"
               )}
               onClick={() => setMobileMoreOpen((value) => !value)}
@@ -139,7 +141,7 @@ export function AppShell() {
         </div>
       </aside>
       <main className="pb-24 lg:ml-64 lg:pb-0">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-slate-50/90 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
+        {!isOverview && <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-slate-50/90 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
           <div>
             <p className="text-xs uppercase tracking-wide text-slate-500">Heute</p>
             <h1 className="text-xl font-bold">Ernährung & Makros</h1>
@@ -147,7 +149,7 @@ export function AppShell() {
           <button aria-label="Theme wechseln" className="grid h-11 w-11 place-items-center rounded-lg border border-slate-200 dark:border-slate-800" onClick={() => setDark((value) => !value)}>
             {dark ? <Sun size={20} /> : <Moon size={20} />}
           </button>
-        </header>
+        </header>}
         <div className="mx-auto max-w-7xl p-4 lg:p-6">
           <Outlet />
         </div>

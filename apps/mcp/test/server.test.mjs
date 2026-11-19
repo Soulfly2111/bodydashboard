@@ -9,7 +9,7 @@ import test from "node:test";
 const expectedTools = ["bd_status", "food_search", "food_upsert", "meal_log",
   "meal_add_item", "meal_get_day", "meal_update_item", "meal_delete_item",
   "off_search", "off_import", "water_log", "weight_log", "activity_log",
-  "stats_day", "stats_week"].sort();
+  "stats_day", "stats_week", "supplement_list", "supplement_get", "supplement_log", "supplement_update_entry", "supplement_delete_entry"].sort();
 
 test("HTTP MCP initializes, lists tools and routes authenticated calls to a mock API", { timeout: 20000 }, async (t) => {
   const requests = [];

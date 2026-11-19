@@ -1,3 +1,4 @@
+import { defaults } from "../supplements/supplements.js";
 import bcrypt from "bcryptjs";
 import { prisma } from "../../config/prisma.js";
 import { Roles } from "./roles.js";
@@ -37,7 +38,8 @@ export class UserService {
         language: input.language ?? "de",
         timezone: input.timezone ?? "Europe/Berlin",
         theme: input.theme ?? "system",
-        goal: { create: {} }
+        goal: { create: {} },
+        supplements: { create: defaults }
       },
       select: this.publicSelect()
     });

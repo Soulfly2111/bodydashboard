@@ -7,6 +7,8 @@ import { AuthProvider } from "./hooks/useAuth";
 import { AppShell } from "./components/layout/AppShell";
 import { LoadingScreen } from "./components/ui/LoadingScreen";
 
+const MacroOverview = lazy(() => import("./pages/MacroOverview"));
+const Supplements = lazy(() => import("./pages/Supplements"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Foods = lazy(() => import("./pages/Foods"));
 const Meals = lazy(() => import("./pages/Meals"));
@@ -29,7 +31,9 @@ const router = createBrowserRouter(
       path: "/",
       element: <AppShell />,
       children: [
-        { index: true, element: <Dashboard /> },
+        { index: true, element: <MacroOverview /> },
+        { path: "dashboard-details", element: <Dashboard /> },
+        { path: "supplements", element: <Supplements /> },
         { path: "foods", element: <Foods /> },
         { path: "meals", element: <Meals /> },
         { path: "activities", element: <Activities /> },

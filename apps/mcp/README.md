@@ -10,7 +10,7 @@ production application section exactly. Production bundle SHA-256:
 ```
 
 This is a separate Node.js 20+ package, intentionally outside the root npm
-workspaces. The existing web/API deployment does not install or restart MCP.
+workspaces. The production workflow also tests and builds this package. Deployment backs up the installed bundle, activates it after the API, and verifies the tool list.
 Its lockfile preserves the recovered runtime dependency versions. Generated
 bundles, credentials, production environment files and private keys are not
 versioned.
@@ -65,7 +65,7 @@ For an intentional MCP update, build and test locally, back up the installed
 bundle, copy the new bundle to the existing path, then restart only
 `bodydashboard-mcp`. Verify MCP initialization, `tools/list` and `bd_status`.
 Rollback consists of restoring the previous bundle and restarting that service.
-Importing this package into Git does not deploy or restart production.
+A push to main runs the combined production deployment unless CI is explicitly skipped.
 
 ## Tools
 
@@ -73,3 +73,11 @@ Importing this package into Git does not deploy or restart production.
 `meal_get_day`, `meal_update_item`, `meal_delete_item`, `off_search`,
 `off_import`, `water_log`, `weight_log`, `activity_log`, `stats_day`,
 `stats_week`.
+
+## Supplement tools
+
+`supplement_list`, `supplement_get`, `supplement_log`,
+`supplement_update_entry`, `supplement_delete_entry` use the OpenClaw integration
+with `supplements:read` / `supplements:write` scopes (or `*`). They work without
+JWT login. Supply an ID or an unambiguous full name, and quantities in the stored
+unit. `externalId` makes intake retries idempotent. Unknown nutrients are null.

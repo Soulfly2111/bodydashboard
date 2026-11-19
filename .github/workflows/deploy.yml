@@ -38,11 +38,29 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Browser tests
+        working-directory: apps/web
+        run: |
+          npx playwright install --with-deps chromium
+          npx playwright test tests/overview.spec.ts
+
+      - name: Test and build MCP
+        working-directory: apps/mcp
+        run: |
+          npm ci
+          npm test
+          npm run build
+          MCP_TEST_ENTRY="$PWD/dist/server.bundle.js" npm test
+
       - name: Create release archive
         run: |
           mkdir -p release
           tar \
             --exclude='.git' \
+            --exclude='./release' \
+            --exclude='test-results' \
+            --exclude='.env' \
+            --exclude='.env.local' \
             --exclude='node_modules' \
             --exclude='apps/api/prisma/dev.db' \
             --exclude='apps/api/.env' \

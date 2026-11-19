@@ -1,3 +1,4 @@
+import { supplementsRouter, supplementIntegrationRouter } from "./modules/supplements/supplements.routes.js";
 import cors from "cors";
 import express from "express";
 import rateLimit from "express-rate-limit";
@@ -49,6 +50,8 @@ export function createApp() {
   app.use("/api/goals", goalsRouter);
   app.use("/api/favorites", favoritesRouter);
   app.use("/api/stats", statsRouter);
+  app.use("/api/supplements", supplementsRouter);
+  app.use("/api/integrations/openclaw/supplements", supplementIntegrationRouter);
   app.use("/api/import-sources", importRouter);
   app.use("/api/integrations", integrationsRouter);
   app.use("/api/open-food-facts", openFoodFactsRouter);
