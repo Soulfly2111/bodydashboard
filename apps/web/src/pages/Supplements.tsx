@@ -28,7 +28,8 @@ export default function Supplements() {
   useEffect(() => { reload().catch(err => setError(err.message)); api<{ timezone: string }>("/auth/me").then(user => setDate(new Intl.DateTimeFormat("en-CA", { timeZone: user.timezone || "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()))).catch(err => setError(err.message)); }, []);
   useEffect(() => {
     let active = true;
-    setEntryId(null); setEditing(false); setEntries([]); setSelected(null);
+    setEntryId(null); setEntries([]); setSelected(null);
+    if (id) setEditing(false);
     if (id) api<Supplement & { entries: Entry[] }>(`/supplements/${id}`).then(item => {
       if (!active) return;
       setSelected(item); setEntries(item.entries); setAmount(item.defaultAmount?.toString() ?? ""); setError("");
@@ -52,7 +53,7 @@ export default function Supplements() {
     setForm(item ? Object.fromEntries(Object.keys(blank).map(key => [key, String(item[key as keyof Supplement] ?? "")])) as Form : blank);
     setEditing(true);
   }
-  return <div className="space-y-5"><header className="flex flex-wrap items-center justify-between gap-3"><div><Link className="text-sm text-teal-600" to="/">← Makro-Übersicht</Link><h1 className="mt-2 flex items-center gap-2 text-2xl font-bold"><Pill /> Supplements</h1><p className="text-sm text-slate-500">Produkte verwalten und Einnahmen festhalten</p></div><Button onClick={() => edit(null)}><Plus size={16} /> Hinzufügen</Button></header>
+  return <div className="space-y-5"><header className="flex flex-wrap items-center justify-between gap-3"><div><Link className="text-sm text-teal-600" to="/">← Makro-Übersicht</Link><h1 className="mt-2 flex items-center gap-2 text-2xl font-bold"><Pill /> Supplements</h1><p className="text-sm text-slate-500">Produkte verwalten und Einnahmen festhalten</p></div><Button onClick={() => { setParams({}); edit(null); }}><Plus size={16} /> Hinzufügen</Button></header>
     {error && <p role="alert" className="rounded-lg border border-red-300 p-3 text-red-600">{error}</p>}
     <div className="grid gap-5 lg:grid-cols-[260px_1fr]"><Card><h2 className="mb-3 font-bold">Deine Supplements</h2><div className="space-y-2">{items.map(item => <button key={item.id} className={`flex w-full items-center gap-3 rounded-lg border p-3 text-left ${id === item.id ? "border-teal-500 bg-teal-500/10" : "border-slate-200 dark:border-slate-700"}`} onClick={() => setParams({ id: item.id })}><span className="h-3 w-3 shrink-0 rounded-full border border-slate-400" style={{ background: item.color }} /><span>{item.name}{item.archived && <small className="block text-slate-500">Archiviert</small>}</span></button>)}</div></Card>
     <div className="space-y-5">{editing ? <Card><h2 className="mb-4 text-xl font-bold">{selected ? "Supplement bearbeiten" : "Supplement hinzufügen"}</h2><form className="supplement-form" onSubmit={save}>

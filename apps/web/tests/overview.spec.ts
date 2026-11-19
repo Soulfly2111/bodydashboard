@@ -43,3 +43,20 @@ test("supplement form preserves unknown nutrition and saves a product", async ({
   await expect(page.getByRole("heading", { name: "Magnesium", exact: true })).toBeVisible();
   expect(posted).toMatchObject({ name: "Magnesium", unit: "Stück", calories: null, defaultAmount: null });
 });
+
+test("a slow product list does not close the new supplement form", async ({ page }) => {
+  let release!: () => void;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/api/supplements?archived=true", async route => {
+    await pending;
+    await route.fulfill({ json: [] });
+  });
+  await page.goto("/supplements");
+  await page.getByRole("button", { name: "Hinzufügen", exact: true }).click();
+  const completed = page.waitForResponse("**/api/supplements?archived=true");
+  release();
+  await completed;
+  await page.getByLabel("Name", { exact: true }).fill("Magnesium");
+  await expect(page.getByRole("heading", { name: "Supplement hinzufügen" })).toBeVisible();
+  await expect(page.getByLabel("Name", { exact: true })).toHaveValue("Magnesium");
+});
