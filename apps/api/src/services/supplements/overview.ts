@@ -31,11 +31,11 @@ export async function overview(userId: string, anchor?: string) {
     const dailyEntries = entries.filter(e => e.date === date);
     const nutrition = supplementTotals(dailyEntries);
     const totals = items.reduce((total, item) => addFoodAmount(total, item.food, item.amount), emptyTotals());
-    for (const key of ["calories", "protein", "fat", "carbs"] as const) totals[key] += nutrition[key];
+    for (const key of ["calories", "protein", "fat", "carbs", "sugar", "fiber", "salt"] as const) totals[key] += nutrition[key];
     const measured = weights.filter(w => recordDay(w.date, user.timezone) === date);
     return { date, ...roundTotals(totals), hasNutrition: items.length > 0 || dailyEntries.length > 0,
       missingNutritionCount: nutrition.missingNutritionCount,
-      knownNutrition: Object.fromEntries((["calories", "protein", "fat", "carbs"] as const).map(key => [key, items.length > 0 || dailyEntries.some(e => e[key] !== null)])),
+      knownNutrition: Object.fromEntries((["calories", "protein", "fat", "carbs", "sugar", "fiber", "salt"] as const).map(key => [key, items.length > 0 || dailyEntries.some(e => e[key] !== null)])),
       activityCount: activities.filter(a => recordDay(a.date, user.timezone) === date).length,
       weightKg: user.trackWeight ? mean(measured.map(w => w.weightKg)) : null,
       bodyFatPercent: user.trackBodyFat ? mean(measured.map(w => w.bodyFatPercent)) : null,
@@ -44,7 +44,7 @@ export async function overview(userId: string, anchor?: string) {
   const weeks = Array.from({ length: 4 }, (_, index) => {
     const block = days.slice(index * 7, index * 7 + 7);
     const totals = emptyTotals();
-    for (const day of block) for (const key of ["calories", "protein", "fat", "carbs"] as const) totals[key] += day[key] / 7;
+    for (const day of block) for (const key of ["calories", "protein", "fat", "carbs", "sugar", "fiber", "salt"] as const) totals[key] += day[key] / 7;
     return { start: block[6].date, end: block[0].date, ...roundTotals(totals),
       hasNutrition: block.some(d => d.hasNutrition), missingNutritionCount: block.reduce((n, d) => n + d.missingNutritionCount, 0),
       knownNutrition: Object.fromEntries(["calories", "protein", "fat", "carbs"].map(key => [key, block.some(d => d.knownNutrition[key])])),

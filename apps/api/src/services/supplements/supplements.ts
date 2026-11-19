@@ -28,7 +28,7 @@ export const supplementSchema = z.object({
   name: z.string().trim().min(1).max(100), brand: z.string().trim().max(100).nullable().optional(),
   unit: z.enum(["g", "ml", "Stück"]), defaultAmount: z.number().finite().positive().nullable().optional(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#00d4df"), archived: z.boolean().optional(),
-  calories: nutrient, protein: nutrient, fat: nutrient, carbs: nutrient
+  calories: nutrient, protein: nutrient, fat: nutrient, carbs: nutrient, sugar: nutrient, fiber: nutrient, salt: nutrient
 });
 export const entrySchema = z.object({
   date: dateSchema.optional(), amount: z.number().finite().positive(), unit: z.enum(["g", "ml", "Stück"]).optional(),
@@ -49,7 +49,7 @@ export async function logSupplement(userId: string, id: string, input: z.infer<t
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
   const date = input.date ?? dateKey(new Date(), user.timezone);
   const data = { userId, supplementId: id, date, amount: input.amount, unit: item.unit,
-    calories: item.calories, protein: item.protein, fat: item.fat, carbs: item.carbs, externalId: input.externalId };
+    calories: item.calories, protein: item.protein, fat: item.fat, carbs: item.carbs, sugar: item.sugar, fiber: item.fiber, salt: item.salt, externalId: input.externalId };
   // The snapshot stores values per 100 units, so quantity corrections retain historical nutrition.
   if (input.externalId) {
     const saved = await prisma.supplementEntry.upsert({
@@ -61,10 +61,10 @@ export async function logSupplement(userId: string, id: string, input: z.infer<t
   }
   return prisma.supplementEntry.create({ data });
 }
-export function supplementTotals(entries: { amount: number; calories: number | null; protein: number | null; fat: number | null; carbs: number | null }[]) {
-  const totals = { calories: 0, protein: 0, fat: 0, carbs: 0, missingNutritionCount: 0 };
+export function supplementTotals(entries: { amount: number; calories: number | null; protein: number | null; fat: number | null; carbs: number | null; sugar?: number | null; fiber?: number | null; salt?: number | null }[]) {
+  const totals = { calories: 0, protein: 0, fat: 0, carbs: 0, sugar: 0, fiber: 0, salt: 0, missingNutritionCount: 0 };
   for (const entry of entries) {
-    for (const key of ["calories", "protein", "fat", "carbs"] as const) totals[key] += (entry[key] ?? 0) * entry.amount / 100;
+    for (const key of ["calories", "protein", "fat", "carbs", "sugar", "fiber", "salt"] as const) totals[key] += (entry[key] ?? 0) * entry.amount / 100;
     if ([entry.calories, entry.protein, entry.fat, entry.carbs].some(value => value === null)) totals.missingNutritionCount++;
   }
   return totals;

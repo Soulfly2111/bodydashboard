@@ -46,7 +46,7 @@ statsRouter.get(
     const bmi = weight?.weightKg && user?.heightCm ? weight.weightKg / Math.pow(user.heightCm / 100, 2) : null;
     const supplementEntries = await prisma.supplementEntry.findMany({ where: { userId: req.user!.id, date: dateSchema.parse(req.params.date) } });
     const supplements = supplementTotals(supplementEntries);
-    for (const key of ["calories", "protein", "fat", "carbs"] as const) totals[key] += supplements[key];
+    for (const key of ["calories", "protein", "fat", "carbs", "sugar", "fiber", "salt"] as const) totals[key] += supplements[key];
     const roundedTotals = roundTotals(totals);
     const activityCalories = Math.round(activities.reduce((sum, item) => sum + item.calories, 0));
     const trainingMinutes = activities.reduce((sum, item) => sum + item.durationMinutes, 0);
@@ -103,7 +103,7 @@ statsRouter.get(
       const dayActivities = activities.filter((activity) => format(activity.date, "yyyy-MM-dd") === dateKey);
       const totals = dayMeals.flatMap(meal => meal.items).reduce((total, item) => addFoodAmount(total, item.food, item.amount), emptyTotals());
       const supplements = supplementTotals(supplementEntries.filter(e => e.date === dateKey));
-      for (const key of ["calories", "protein", "fat", "carbs"] as const) totals[key] += supplements[key];
+      for (const key of ["calories", "protein", "fat", "carbs", "sugar", "fiber", "salt"] as const) totals[key] += supplements[key];
       return {
         missingNutritionCount: supplements.missingNutritionCount,
         date: dateKey,

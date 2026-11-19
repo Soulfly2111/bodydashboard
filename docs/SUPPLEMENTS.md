@@ -30,7 +30,7 @@ newly issued keys respect their actual scopes.
 - `PATCH /:id/entries/:entryId`: correct amount or date without replacing nutrients.
 - `DELETE /:id/entries/:entryId`: remove one intake.
 
-Nutrients (`calories`, `protein`, `fat`, `carbs`) are optional per 100 base units.
+Nutrients (`calories`, `protein`, `fat`, `carbs`, `sugar`, `fiber`, `salt`) are optional per 100 base units.
 Null is unknown; zero is a known zero. Intakes snapshot these values, so changing
 a product does not rewrite history. Reusing `externalId` with different data
 returns 409; an identical retry returns the existing intake.
@@ -54,3 +54,15 @@ the new MCP bundle. A failed activation restores the old application and bundle;
 the additive database migration is retained. Database restore is a separate
 recovery action, because restoring it could discard subsequent user writes.
 Keep backups root-only. No production credentials or endpoint secrets belong in Git.
+
+## Historical meal transfer
+
+`prisma/transfer-supplement-meals.ts` defaults to a read-only preview, scoped to
+`MIGRATION_USER_ID`. It accepts only recognized individual Creatin/Kollagen/LaVita
+food names, excluding combined meals and ambiguous portions. `--apply` requires
+a root-only `MIGRATION_REPORT_PATH`; take a consistent database backup first.
+Use `--lavita-grams-were-ml` only after the user confirms that original gram units
+were entry mistakes. All seven nutrient values and original creation timestamps
+are preserved per intake. The transaction removes only transferred meal items,
+keeps food definitions and meal containers, and verifies daily nutrient totals.
+Original item IDs become intake external IDs. Re-running does not duplicate data.

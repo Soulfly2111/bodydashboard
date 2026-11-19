@@ -103,4 +103,20 @@ describe("supplements and overview", () => {
     const data = await request(app).get("/api/stats/overview?end=2026-11-19").set(auth()).expect(200);
     expect(data.body.days[2]).toMatchObject({ hasNutrition: true, missingNutritionCount: 1, knownNutrition: { calories: false } });
   });
+  it("transfers only classified meal items once, preserving all seven nutrients", async () => {
+    const { initializeSupplements } = await import("../../services/supplements/supplements.js");
+    const user = await db.user.create({ data: { name: "Migration", email: "migration@example.invalid", passwordHash: "unused" } });
+    await initializeSupplements(user.id);
+    const food = await db.food.create({ data: { userId: user.id, name: "LaVita", caloriesPer100g: 133, protein: 0, fat: 0, carbs: 33, sugar: 25, fiber: 1, salt: 0.2 } });
+    const meal = await db.meal.create({ data: { userId: user.id, date: new Date("2026-11-18T23:00:00Z"), type: "SNACK", items: { create: { foodId: food.id, amount: 15, unit: "g" } } } });
+    const environment = { ...process.env, MIGRATION_USER_ID: user.id, MIGRATION_REPORT_PATH: join(mkdtempSync(join(tmpdir(), "supplement-transfer-report-")), "report.json") };
+    const run = (apply: boolean) => JSON.parse(execFileSync(process.execPath, [req.resolve("tsx/cli"), resolve("prisma/transfer-supplement-meals.ts"), "--lavita-grams-were-ml", ...(apply ? ["--apply"] : [])], { env: environment, encoding: "utf8" }).trim());
+    expect(run(false)).toMatchObject({ transferred: 1, applied: false });
+    expect(await db.mealItem.count({ where: { mealId: meal.id } })).toBe(1);
+    expect(run(true)).toMatchObject({ transferred: 1, dailyNutritionUnchanged: true, correctedLaVitaUnits: 1 });
+    const intake = await db.supplementEntry.findFirstOrThrow({ where: { userId: user.id } });
+    expect(intake).toMatchObject({ date: "2026-11-19", amount: 15, unit: "ml", sugar: 25, fiber: 1, salt: 0.2 });
+    expect(await db.mealItem.count({ where: { mealId: meal.id } })).toBe(0);
+    expect(run(true).transferred).toBe(0);
+  }, 20000);
 });

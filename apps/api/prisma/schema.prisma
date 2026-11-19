@@ -76,6 +76,9 @@ model Supplement {
   protein Float?
   fat Float?
   carbs Float?
+  sugar Float?
+  fiber Float?
+  salt Float?
   createdAt DateTime @default(now())
   entries SupplementEntry[]
   @@unique([userId, defaultKey])
@@ -95,6 +98,9 @@ model SupplementEntry {
   protein Float?
   fat Float?
   carbs Float?
+  sugar Float?
+  fiber Float?
+  salt Float?
   externalId String?
   createdAt DateTime @default(now())
   @@unique([userId, externalId])
