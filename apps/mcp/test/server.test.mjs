@@ -11,7 +11,7 @@ const expectedTools = ["bd_status", "food_search", "food_upsert", "meal_log",
   "off_search", "off_import", "water_log", "weight_log", "activity_log",
   "stats_day", "stats_week", "supplement_list", "supplement_get", "supplement_log", "supplement_update_entry", "supplement_delete_entry"].sort();
 
-test("HTTP MCP initializes, lists tools and routes authenticated calls to a mock API", { timeout: 20000 }, async (t) => {
+for (const keyOnly of [false, true]) test(`HTTP MCP ${keyOnly ? "API-key-only" : "JWT"} initializes, lists tools and routes authenticated calls to a mock API`, { timeout: 20000 }, async (t) => {
   const requests = [];
   const mock = createServer(async (req, res) => {
     let raw = "";
@@ -41,7 +41,7 @@ test("HTTP MCP initializes, lists tools and routes authenticated calls to a mock
   const child = spawn(process.execPath, [entry], {
     env: { ...process.env, BODYDASH_TRANSPORT: "http", PORT: String(port),
       MCP_PATH_SECRET: "local-test-secret", BODYDASH_URL: `http://127.0.0.1:${mock.address().port}`,
-      BODYDASH_API_KEY: "test-api-key", BODYDASH_EMAIL: "test@example.invalid", BODYDASH_PASSWORD: "test-password" },
+      BODYDASH_API_KEY: "test-api-key", BODYDASH_EMAIL: keyOnly ? "" : "test@example.invalid", BODYDASH_PASSWORD: keyOnly ? "" : "test-password" },
     stdio: ["ignore", "ignore", "pipe"],
   });
   let stderr = "";
@@ -76,8 +76,10 @@ test("HTTP MCP initializes, lists tools and routes authenticated calls to a mock
   assert.deepEqual((await rpc("tools/list")).tools.map(tool => tool.name).sort(), expectedTools);
   const status = await rpc("tools/call", { name: "bd_status", arguments: {} });
   assert.match(status.content[0].text, /API-Key: ok/);
-  assert.match(status.content[0].text, /JWT-Login: ok/);
-  assert.equal(requests.find(r => r.path === "/api/auth/me").headers.authorization, "Bearer test-access-token");
+  assert.match(status.content[0].text, keyOnly ? /API-Key-Konto: ok/ : /JWT-Login: ok/);
+  const meHeaders = requests.find(r => r.path === "/api/auth/me").headers;
+  assert.equal(keyOnly ? meHeaders["x-api-key"] : meHeaders.authorization, keyOnly ? "test-api-key" : "Bearer test-access-token");
+  if (keyOnly) assert.ok(!requests.some(r => r.path === "/api/auth/login"));
   const water = await rpc("tools/call", { name: "water_log", arguments: { amountMl: 250, date: "2026-11-19" } });
   assert.notEqual(water.isError, true);
   const write = requests.find(r => r.path === "/api/integrations/openclaw/water");

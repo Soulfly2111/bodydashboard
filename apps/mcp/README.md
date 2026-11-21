@@ -81,3 +81,17 @@ A push to main runs the combined production deployment unless CI is explicitly s
 with `supplements:read` / `supplements:write` scopes (or `*`). They work without
 JWT login. Supply an ID or an unambiguous full name, and quantities in the stored
 unit. `externalId` makes intake retries idempotent. Unknown nutrients are null.
+
+
+## Separate accounts
+
+Run one HTTP service per account, with a separate root-readable EnvironmentFile,
+unique MCP_PATH_SECRET and loopback PORT. Never reuse another account's API key.
+With BODYDASH_API_KEY and no BODYDASH_EMAIL/BODYDASH_PASSWORD, all tools use the
+account-bound key, including read/search/statistics routes. Web password changes
+do not affect this mode. Existing configured JWT credentials retain their behavior.
+
+Additional services can use the shared /opt/bodydashboard-mcp/server.bundle.js.
+Set PartOf=bodydashboard-mcp.service so deployments restart them with the main
+service. Each HTTPS proxy mapping must target only that instance's loopback port.
+The secret URL grants account access: send it only to the intended account owner.

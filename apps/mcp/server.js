@@ -73,6 +73,8 @@ async function jwtRefresh() {
 
 /** API-Aufruf. jwt=true → Bearer-Token (automatischer Login/Refresh). */
 async function api(path, { method = "GET", body, jwt: useJwt = false } = {}) {
+  // Account-bound API keys also authenticate the normal API routes.
+  if (API_KEY && !EMAIL && !PASSWORD) useJwt = false;
   const headers = {};
   if (API_KEY) headers["x-api-key"] = API_KEY;
   if (useJwt) {
@@ -108,7 +110,7 @@ const requireKey = (name) => {
   if (!API_KEY) throw new Error(`${name} benötigt BODYDASH_API_KEY in der MCP-Konfiguration.`);
 };
 const requireJwt = (name) => {
-  if (!EMAIL || !PASSWORD) {
+  if (!API_KEY && (!EMAIL || !PASSWORD)) {
     throw new Error(`${name} benötigt BODYDASH_EMAIL + BODYDASH_PASSWORD in der MCP-Konfiguration (der API-Key deckt nur die Tracking-Endpunkte ab).`);
   }
 };
@@ -153,6 +155,9 @@ function buildServer() {
         await jwtLogin();
         const me = await api("/api/auth/me", { jwt: true });
         parts.push(`JWT-Login: ok (user ${me.name} <${me.email}>, Rolle ${me.role})`);
+      } else if (API_KEY) {
+        const me = await api("/api/auth/me");
+        parts.push(`API-Key-Konto: ok (user ${me.name} <${me.email}>, Rolle ${me.role})`);
       } else {
         parts.push("JWT-Login: nicht konfiguriert (Lesen/Suchen/Statistiken deaktiviert)");
       }
