@@ -60,3 +60,17 @@ test("a slow product list does not close the new supplement form", async ({ page
   await expect(page.getByRole("heading", { name: "Supplement hinzufügen" })).toBeVisible();
   await expect(page.getByLabel("Name", { exact: true })).toHaveValue("Magnesium");
 });
+test("Geise dashboard selects days and redirects other pages", async ({page},info)=>{
+ await page.setViewportSize({width:360,height:800});
+ await page.addInitScript(()=>localStorage.setItem("macroflow.user",JSON.stringify({id:"cmwqmmgy800yumojcmtbe7796",name:"Geise",role:"USER"})));
+ await page.route("**/api/stats/day/*",route=>route.fulfill({json:{goal:{calories:2000,protein:150,fat:70,carbs:200},missingNutritionCount:0,latestMeasurements:{weight:{date:"2026-10-01",weightKg:68.7},bodyFat:{date:"2026-09-01",bodyFatPercent:24.2}},meals:[{type:"BREAKFAST",items:[{id:"a",name:route.request().url().endsWith("19")?"Apfel":"Banane",amount:125.4,unit:"g"}]}]}}));
+ await page.goto("/settings");
+ await expect(page).toHaveURL("/");
+ await expect(page.getByText("Apfel",{exact:true})).toBeVisible();
+ await page.getByRole("button",{name:"18.11. auswählen",exact:true}).click();
+ await expect(page.getByText("Banane",{exact:true})).toBeVisible();
+ await expect(page.getByText("Apfel",{exact:true})).toHaveCount(0);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await expect(page.locator("section").last()).toHaveClass(/g-history/);
+ await page.screenshot({path:info.outputPath("geise.png"),fullPage:true});
+});
