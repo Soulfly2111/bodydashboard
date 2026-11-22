@@ -2,6 +2,7 @@ import { Pill, Activity, Apple, CalendarDays, Camera, Droplet, Dumbbell, Home, I
 import { NavLink, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { cn } from "../../lib/cn";
+import GeiseDashboard from "../../pages/GeiseDashboard";
 import { useAuth } from "../../hooks/useAuth";
 
 const nav = [
@@ -32,7 +33,8 @@ function parseVisiblePages(value?: string | null) {
 
 export function AppShell() {
   const { user } = useAuth();
-  const isOverview = useLocation().pathname === "/";
+  const pathname = useLocation().pathname;
+  const isOverview = pathname === "/";
   const [dark, setDark] = useState(() => localStorage.getItem("macroflow.theme") === "dark");
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
 
@@ -42,6 +44,8 @@ export function AppShell() {
   }, [dark]);
 
   if (!user) return <Navigate to="/login" replace />;
+
+  if (user.id === "cmwqmmgy800yumojcmtbe7796") return pathname === "/" ? <GeiseDashboard /> : <Navigate to="/" replace />;
 
   const configuredPages = parseVisiblePages(user.visiblePagesJson);
   const visibleNav = nav.filter((item) => {
