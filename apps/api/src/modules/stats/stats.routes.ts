@@ -54,7 +54,7 @@ statsRouter.get(
     const totalExpenditure = bmr + activityCalories;
     const calorieBalance = Math.round(roundedTotals.calories - totalExpenditure);
     res.json({
-      meals: meals.map(meal => ({ type: meal.type, items: meal.items.map(item => ({ id: item.id, name: item.food.name, amount: item.amount, unit: item.unit })) })),
+      meals: meals.map(meal => ({ type: meal.type, totals: meal.items.reduce((total, item) => addFoodAmount(total, item.food, item.amount), emptyTotals()), items: meal.items.map(item => ({ id: item.id, name: item.food.name, amount: item.amount, unit: item.unit })) })),
       latestMeasurements: { weight: await prisma.weightEntry.findFirst({ where: { userId: req.user!.id, weightKg: { not: null } }, orderBy: { date: "desc" } }), bodyFat: await prisma.weightEntry.findFirst({ where: { userId: req.user!.id, bodyFatPercent: { not: null } }, orderBy: { date: "desc" } }) },
       totals: roundedTotals,
       missingNutritionCount: supplements.missingNutritionCount,
