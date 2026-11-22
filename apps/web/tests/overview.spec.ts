@@ -64,6 +64,11 @@ test("Geise dashboard selects days and redirects other pages", async ({page},inf
  await page.setViewportSize({width:360,height:800});
  await page.addInitScript(()=>localStorage.setItem("macroflow.user",JSON.stringify({id:"cmwqmmgy800yumojcmtbe7796",name:"Geise",role:"USER"})));
  await page.route("**/api/stats/day/*",route=>route.fulfill({json:{goal:{calories:2000,protein:150,fat:70,carbs:200},missingNutritionCount:0,latestMeasurements:{weight:{date:"2026-10-01",weightKg:68.7},bodyFat:{date:"2026-09-01",bodyFatPercent:24.2}},meals:[{type:"BREAKFAST",totals:{calories:230.6,protein:10.2,fat:6.7,carbs:31.4},items:[{id:"a",name:route.request().url().endsWith("19")?"Apfel":"Banane",amount:125.4,unit:"g"}]}]}}));
+ await page.route("**/api/stats/overview*",route=>{
+  const end=new URL(route.request().url()).searchParams.get("end")||data.today;
+  const days=data.days.map((d,i)=>{const t=new Date(end+"T12:00:00Z");t.setUTCDate(t.getUTCDate()-i);return {...d,date:t.toISOString().slice(0,10)}});
+  return route.fulfill({json:{...data,days}});
+ });
  await page.goto("/settings");
  await expect(page).toHaveURL("/");
  await expect(page.getByText("Apfel",{exact:true})).toBeVisible();
@@ -73,5 +78,16 @@ test("Geise dashboard selects days and redirects other pages", async ({page},inf
  await expect(page.getByText("Apfel",{exact:true})).toHaveCount(0);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await expect(page.locator("section").last()).toHaveClass(/g-history/);
+ await expect(page.locator(".g-ringbox .lucide-flame")).toHaveCount(0);
+ await expect(page.locator(".g-week-range")).toContainText("13.11.2026 – 19.11.2026");
+ await page.getByRole("button",{name:"Vorherige Woche",exact:true}).click();
+ await expect(page.locator(".g-week-range")).toContainText("06.11.2026 – 12.11.2026");
+ await expect(page.getByRole("button",{name:"12.11. auswählen",exact:true})).toHaveAttribute("aria-pressed","true");
+ await page.locator(".g-days").evaluate(el=>{
+  const start=new Event("touchstart",{bubbles:true});Object.defineProperty(start,"touches",{value:[{clientX:260,clientY:100}]});el.dispatchEvent(start);
+  const end=new Event("touchend",{bubbles:true});Object.defineProperty(end,"changedTouches",{value:[{clientX:100,clientY:105}]});el.dispatchEvent(end);
+ });
+ await expect(page.locator(".g-week-range")).toContainText("13.11.2026 – 19.11.2026");
+ await expect(page.getByRole("button",{name:"Nächste Woche",exact:true})).toBeDisabled();
  await page.screenshot({path:info.outputPath("geise.png"),fullPage:true});
 });

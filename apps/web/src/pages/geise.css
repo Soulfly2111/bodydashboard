@@ -3,3 +3,5 @@
 .g-ring-tip{filter:drop-shadow(0 2px 2px #000b)}
 
 .g-meal-heading{display:flex;align-items:baseline;justify-content:space-between;gap:4px 10px;flex-wrap:wrap;margin:14px 0 6px}.g-meal-heading h3{margin:0}.g-meal-totals{display:flex;flex-wrap:wrap;gap:3px 8px;color:#b5c9d5;font-size:11px;line-height:1.6}.g-meal-totals span{white-space:nowrap}.g-meal-totals span:first-child{color:#e1f4f7;font-weight:600}
+
+.g-week-range{display:inline;color:#91b9c9}.g-week-controls{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px}.g-week-controls button{display:grid;place-items:center;min-width:44px;min-height:44px;border:1px solid #385060;border-radius:13px}.g-week-controls button:disabled{opacity:.3}.g-week-controls span{font-size:11px;color:#a9becb;text-align:center}.g-days{touch-action:pan-y}.g-days[aria-busy=true]{opacity:.5}
