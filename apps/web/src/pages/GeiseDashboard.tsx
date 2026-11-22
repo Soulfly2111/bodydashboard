@@ -13,7 +13,22 @@ type Detail = {goal:Values; totals:Values; missingNutritionCount:number; latestM
 const n = (v:number) => new Intl.NumberFormat("de-DE",{maximumFractionDigits:0}).format(v);
 const date = (v:string,weekday=false) => new Intl.DateTimeFormat("de-DE",{timeZone:"UTC",...(weekday?{weekday:"short" as const}:{day:"2-digit" as const,month:"2-digit" as const})}).format(new Date(v.slice(0,10)+"T12:00:00Z"));
 function Rings({values,goal,small=false}:{values:Values;goal:Values;small?:boolean}) {
- return <svg viewBox="0 0 220 220" className={small?"g-rings small":"g-rings"} aria-hidden="true">{metrics.map((m,i)=>{const r=96-i*18,c=2*Math.PI*r,p=goal[m.key]>0?Math.min(1,Math.max(0,values[m.key]/goal[m.key])):0;return <g key={m.key}><circle cx="110" cy="110" r={r} fill="none" stroke="#253540" strokeWidth="12"/><circle cx="110" cy="110" r={r} fill="none" stroke={m.color} strokeWidth="12" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c*(1-p)} transform="rotate(-90 110 110)"/></g>})}</svg>;
+ return <svg viewBox="0 0 220 220" className={small?"g-rings small":"g-rings"} aria-hidden="true">
+  {metrics.map((m,i)=>{
+   const r=96-i*18, circumference=2*Math.PI*r;
+   const ratio=goal[m.key]>0?Math.max(0,values[m.key]/goal[m.key]):0;
+   const overflow=!small&&ratio>1;
+   const progress=overflow?ratio%1:Math.min(1,ratio);
+   const angle=2*Math.PI*progress-Math.PI/2;
+   const x=110+r*Math.cos(angle), y=110+r*Math.sin(angle);
+   return <g key={m.key} data-metric={m.key} data-progress={ratio}>
+    <circle cx="110" cy="110" r={r} fill="none" stroke="#253540" strokeWidth="12"/>
+    {overflow&&<circle cx="110" cy="110" r={r} fill="none" stroke={m.color} strokeOpacity=".55" strokeWidth="12"/>}
+    {progress>0&&<circle cx="110" cy="110" r={r} fill="none" stroke={m.color} strokeWidth="12" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={circumference*(1-progress)} transform="rotate(-90 110 110)"/>}
+    {overflow&&<g className="g-ring-tip"><circle cx={x} cy={y} r="6" fill={m.color}/><circle cx={x} cy={y} r="2" fill="white" fillOpacity=".7"/></g>}
+   </g>;
+  })}
+ </svg>;
 }
 export default function GeiseDashboard(){
  const {logout,user}=useAuth();
