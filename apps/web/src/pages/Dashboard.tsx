@@ -26,7 +26,9 @@ import { ProgressRing } from "../components/dashboard/ProgressRing";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { useApi } from "../hooks/useApi";
+import { useAuth } from "../hooks/useAuth";
 import { api } from "../lib/api";
+import { formatDashboardInteger, usesHeinerDashboard } from "../lib/dashboardDisplay";
 import type { BodyProgressStatistics, DayStats, Food, MacroTotals, WeekDay } from "../types/domain";
 
 function toDateKey(date: Date) {
@@ -152,6 +154,10 @@ function moveItem<T>(items: T[], index: number, direction: -1 | 1) {
 }
 
 export default function Dashboard() {
+  const { user } = useAuth();
+  const formatInteger = usesHeinerDashboard(user?.id) ? formatDashboardInteger : undefined;
+  const round = formatInteger ?? Math.round;
+  const display = formatInteger ?? ((value: number) => value);
   const [selectedDate, setSelectedDate] = useState(() => new URLSearchParams(window.location.search).get("date")?.match(/^\d{4}-\d{2}-\d{2}$/)?.[0] ?? today);
   const [customizing, setCustomizing] = useState(false);
   const [widgets, setWidgets] = useState<DashboardWidgetId[]>(defaultWidgets);
@@ -261,21 +267,21 @@ export default function Dashboard() {
   }
 
   const metricContent: Record<DashboardMetricCardId, { icon: typeof Flame; label: string; value: string | number; unit?: string }> = {
-    consumedCalories: { icon: Flame, label: "Aufgenommene Kalorien", value: Math.round(data.energy?.consumedCalories ?? data.totals.calories), unit: "kcal" },
-    burnedCalories: { icon: Activity, label: "Verbrauchte Kalorien", value: Math.round(data.energy?.totalExpenditure ?? 0), unit: "kcal" },
-    netCalories: { icon: Flame, label: "Netto-Kalorien", value: Math.round(data.energy?.netCalories ?? 0), unit: "kcal" },
-    calorieBalance: { icon: Activity, label: "Kalorienbilanz", value: Math.round(data.energy?.calorieBalance ?? 0), unit: (data.energy?.calorieBalance ?? 0) >= 0 ? "Ueberschuss" : "Defizit" },
+    consumedCalories: { icon: Flame, label: "Aufgenommene Kalorien", value: round(data.energy?.consumedCalories ?? data.totals.calories), unit: "kcal" },
+    burnedCalories: { icon: Activity, label: "Verbrauchte Kalorien", value: round(data.energy?.totalExpenditure ?? 0), unit: "kcal" },
+    netCalories: { icon: Flame, label: "Netto-Kalorien", value: round(data.energy?.netCalories ?? 0), unit: "kcal" },
+    calorieBalance: { icon: Activity, label: "Kalorienbilanz", value: round(data.energy?.calorieBalance ?? 0), unit: (data.energy?.calorieBalance ?? 0) >= 0 ? "Ueberschuss" : "Defizit" },
     activitiesToday: { icon: Activity, label: "Aktivitaeten heute", value: data.activities?.count ?? 0, unit: "Einheiten" },
-    trainingTime: { icon: Activity, label: "Trainingszeit heute", value: data.activities?.durationMinutes ?? 0, unit: "min" },
-    activityCalories: { icon: Flame, label: "Verbrannte Aktivitaetskalorien", value: Math.round(data.activities?.calories ?? 0), unit: "kcal" },
-    protein: { icon: Beef, label: "Protein", value: Math.round(data.totals.protein), unit: "g" },
-    fiber: { icon: Wheat, label: "Ballaststoffe", value: Math.round(data.totals.fiber), unit: "g" },
-    weightBmi: { icon: Scale, label: "Gewicht / BMI", value: data.weight?.weightKg ?? "-", unit: data.bmi ? `kg - BMI ${data.bmi}` : "kg" },
+    trainingTime: { icon: Activity, label: "Trainingszeit heute", value: display(data.activities?.durationMinutes ?? 0), unit: "min" },
+    activityCalories: { icon: Flame, label: "Verbrannte Aktivitaetskalorien", value: round(data.activities?.calories ?? 0), unit: "kcal" },
+    protein: { icon: Beef, label: "Protein", value: round(data.totals.protein), unit: "g" },
+    fiber: { icon: Wheat, label: "Ballaststoffe", value: round(data.totals.fiber), unit: "g" },
+    weightBmi: { icon: Scale, label: "Gewicht / BMI", value: data.weight?.weightKg == null ? "-" : display(data.weight.weightKg), unit: data.bmi ? `kg - BMI ${display(data.bmi)}` : "kg" },
     latestPhoto: { icon: Images, label: "Letztes Fortschrittsbild", value: bodyProgress.latestPhoto?.date?.slice(0, 10) ?? "-", unit: bodyProgress.latestPhoto?.viewType ?? "" },
-    abdomenChange: { icon: Ruler, label: "Bauch 30 Tage", value: bodyProgress.changes.abdomen30 ?? 0, unit: "cm" },
-    skinfoldChange: { icon: Ruler, label: "Hautfalte 30 Tage", value: bodyProgress.changes.skinfold30 ?? 0, unit: "mm" },
-    waistChange: { icon: Ruler, label: "Taille 30 Tage", value: bodyProgress.changes.waist30 ?? 0, unit: "cm" },
-    chestChange: { icon: Ruler, label: "Brust 30 Tage", value: bodyProgress.changes.chest30 ?? 0, unit: "cm" }
+    abdomenChange: { icon: Ruler, label: "Bauch 30 Tage", value: display(bodyProgress.changes.abdomen30 ?? 0), unit: "cm" },
+    skinfoldChange: { icon: Ruler, label: "Hautfalte 30 Tage", value: display(bodyProgress.changes.skinfold30 ?? 0), unit: "mm" },
+    waistChange: { icon: Ruler, label: "Taille 30 Tage", value: display(bodyProgress.changes.waist30 ?? 0), unit: "cm" },
+    chestChange: { icon: Ruler, label: "Brust 30 Tage", value: display(bodyProgress.changes.chest30 ?? 0), unit: "cm" }
   };
 
   const widgetContent: Record<DashboardWidgetId, JSX.Element> = {
@@ -347,7 +353,7 @@ export default function Dashboard() {
             <h2 className="font-bold">{dateFormatter.format(fromDateKey(week.start))} - {dateFormatter.format(fromDateKey(week.end))}</h2>
           </div>
           <div className="text-sm text-slate-500">
-            Durchschnitt {Math.round(week.averages.calories)} kcal - Training {Math.round(week.averages.trainingMinutes ?? 0)} min - Verbrauch {Math.round(week.averages.activityCalories ?? 0)} kcal
+            Durchschnitt {round(week.averages.calories)} kcal - Training {round(week.averages.trainingMinutes ?? 0)} min - Verbrauch {round(week.averages.activityCalories ?? 0)} kcal
           </div>
         </div>
         <div className="grid gap-3 md:grid-cols-7">
@@ -370,11 +376,11 @@ export default function Dashboard() {
                   <span className="text-xs text-slate-500">{String(dayObject.getDate()).padStart(2, "0")}.</span>
                 </div>
                 <div className="space-y-1 text-sm">
-                  <p className="font-semibold">{Math.round(day.calories)} kcal</p>
-                  <p className="text-slate-500">P {Math.round(day.protein)} - C {Math.round(day.carbs)} - F {Math.round(day.fat)}</p>
-                  <p className="text-slate-500">{Math.round(day.trainingMinutes ?? 0)} min - {Math.round(day.activityCalories ?? 0)} kcal aktiv</p>
-                  {showWater && <p className="text-slate-500">{Math.round(day.waterMl ?? 0)} ml Wasser</p>}
-                  {showWeight && <p className="text-slate-500">{day.weightKg ? `${day.weightKg} kg` : "kein Gewicht"}</p>}
+                  <p className="font-semibold">{round(day.calories)} kcal</p>
+                  <p className="text-slate-500">P {round(day.protein)} - C {round(day.carbs)} - F {round(day.fat)}</p>
+                  <p className="text-slate-500">{round(day.trainingMinutes ?? 0)} min - {round(day.activityCalories ?? 0)} kcal aktiv</p>
+                  {showWater && <p className="text-slate-500">{round(day.waterMl ?? 0)} ml Wasser</p>}
+                  {showWeight && <p className="text-slate-500">{day.weightKg ? `${display(day.weightKg)} kg` : "kein Gewicht"}</p>}
                 </div>
               </button>
             );
@@ -382,21 +388,21 @@ export default function Dashboard() {
         </div>
         <div className="mt-4 grid gap-3 lg:grid-cols-5">
           {weekGoalItems.map((item) => {
-            const percent = item.goal > 0 ? Math.round((item.value / item.goal) * 100) : 0;
+            const percent = item.goal > 0 ? (item.value / item.goal) * 100 : 0;
             return (
               <div key={item.label} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
                 <div className="mb-2 flex items-center justify-between gap-2 text-sm">
                   <span className="font-semibold">{item.label}</span>
-                  <span className="text-slate-500">{percent}%</span>
+                  <span className="text-slate-500">{round(percent)}%</span>
                 </div>
                 <div className="mb-2 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
-                  <div className="h-full rounded-full" style={{ width: `${Math.min(percent, 100)}%`, backgroundColor: item.color }} />
+                  <div className="h-full rounded-full" style={{ width: `${Math.min(Math.round(percent), 100)}%`, backgroundColor: item.color }} />
                 </div>
                 <p className="text-sm text-slate-500">
-                  {Math.round(item.value)} / {Math.round(item.goal)} {item.unit}
+                  {round(item.value)} / {round(item.goal)} {item.unit}
                 </p>
                 <p className="text-xs text-slate-400">
-                  Durchschnitt {Math.round(item.value / 7)} {item.unit} pro Tag
+                  Durchschnitt {round(item.value / 7)} {item.unit} pro Tag
                 </p>
               </div>
             );
@@ -406,11 +412,11 @@ export default function Dashboard() {
     ),
     rings: (
       <Card className="grid gap-x-5 gap-y-6 sm:grid-cols-2 2xl:grid-cols-3">
-        <ProgressRing label="Kalorien" value={data.totals.calories} goal={data.goal.calories} color="#FF6B5F" />
-        <ProgressRing label="Protein" value={data.totals.protein} goal={data.goal.protein} color="#26A69A" />
-        <ProgressRing label="Kohlenhydrate" value={data.totals.carbs} goal={data.goal.carbs} color="#F4B942" />
-        <ProgressRing label="Fett" value={data.totals.fat} goal={data.goal.fat} color="#FF6B5F" />
-        {showWater && <ProgressRing label="Wasser" value={data.waterMl} goal={data.goal.waterMl} color="#3B82F6" />}
+        <ProgressRing label="Kalorien" value={data.totals.calories} goal={data.goal.calories} color="#FF6B5F" formatNumber={formatInteger} />
+        <ProgressRing label="Protein" value={data.totals.protein} goal={data.goal.protein} color="#26A69A" formatNumber={formatInteger} />
+        <ProgressRing label="Kohlenhydrate" value={data.totals.carbs} goal={data.goal.carbs} color="#F4B942" formatNumber={formatInteger} />
+        <ProgressRing label="Fett" value={data.totals.fat} goal={data.goal.fat} color="#FF6B5F" formatNumber={formatInteger} />
+        {showWater && <ProgressRing label="Wasser" value={data.waterMl} goal={data.goal.waterMl} color="#3B82F6" formatNumber={formatInteger} />}
       </Card>
     ),
     macros: (
@@ -425,19 +431,19 @@ export default function Dashboard() {
               <Pie data={donut} innerRadius={58} outerRadius={82} dataKey="value" paddingAngle={3}>
                 {donut.map((item) => <Cell key={item.name} fill={item.color} />)}
               </Pie>
-              <Tooltip />
+              <Tooltip formatter={formatInteger ? (value) => formatInteger(Number(value)) : undefined} />
             </PieChart>
           </ResponsiveContainer>
           <div className="pointer-events-none absolute inset-0 grid place-items-center">
             <div className="text-center">
               <p className="text-xs text-slate-500 dark:text-slate-400">gesamt</p>
-              <p className="text-xl font-bold">{Math.round(macroTotal)} g</p>
+              <p className="text-xl font-bold">{round(macroTotal)} g</p>
             </div>
           </div>
         </div>
         <div className="mt-3 space-y-2">
           {donut.map((item) => {
-            const percent = macroTotal ? Math.round((item.value / macroTotal) * 100) : 0;
+            const percent = macroTotal ? round((item.value / macroTotal) * 100) : 0;
             return (
               <div key={item.name} className="flex items-center justify-between gap-3 rounded-lg bg-slate-100 px-3 py-2 text-sm dark:bg-slate-800">
                 <div className="flex min-w-0 items-center gap-2">
@@ -445,7 +451,7 @@ export default function Dashboard() {
                   <span className="truncate font-medium">{item.name}</span>
                 </div>
                 <span className="shrink-0 font-semibold">
-                  {Math.round(item.value)} / {item.goal} g - {percent}%
+                  {round(item.value)} / {display(item.goal)} g - {percent}%
                 </span>
               </div>
             );
@@ -468,7 +474,7 @@ export default function Dashboard() {
           {favoriteFoods.slice(0, 4).map((food) => (
             <div key={food.id} className="rounded-lg bg-slate-100 p-3 dark:bg-slate-800">
               <p className="truncate font-semibold">{food.name}</p>
-              <p className="text-sm text-slate-500">{food.caloriesPer100g} kcal - P {food.protein} C {food.carbs} F {food.fat}</p>
+              <p className="text-sm text-slate-500">{display(food.caloriesPer100g)} kcal - P {display(food.protein)} C {display(food.carbs)} F {display(food.fat)}</p>
             </div>
           ))}
           {!favoriteFoods.length && <p className="text-sm text-slate-500">Noch keine Favoriten gespeichert.</p>}

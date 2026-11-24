@@ -34,45 +34,77 @@ function Rings({values,goal,small=false}:{values:Values;goal:Values;small?:boole
   })}
  </svg>;
 }
-export default function GeiseDashboard(){
+export default function GeiseDashboard() {
+ return <DailyDashboard />;
+}
+
+export function DailyDashboard({embeddedOverview,formatNumber=n}:{embeddedOverview?:Overview;formatNumber?:(value:number)=>string}){
  const {logout,user}=useAuth();
- const [overview,setOverview]=useState<Overview|null>(null),[selected,setSelected]=useState(""),[detail,setDetail]=useState<Detail|null>(null),[error,setError]=useState(""),[refresh,setRefresh]=useState(0);
+ const [loadedOverview,setLoadedOverview]=useState<Overview|null>(null);
+ const [selectedDate,setSelectedDate]=useState("");
+ const [dayResult,setDayResult]=useState<{date:string;detail?:Detail;error?:string}|null>(null);
+ const [weekError,setWeekError]=useState(""),[refresh,setRefresh]=useState(0);
  const [weekEnd,setWeekEnd]=useState(""),[weekLoading,setWeekLoading]=useState(false);
  const touch=useRef<{x:number;y:number}|null>(null), suppressClickUntil=useRef(0);
+ const embedded=Boolean(embeddedOverview);
+ const useEmbeddedWeek=embedded&&!weekEnd;
+ const overview=useEmbeddedWeek?embeddedOverview:loadedOverview??embeddedOverview;
+ const day=overview?.days.find(d=>d.date===selectedDate)??overview?.days[0];
+ const selected=day?.date??"";
+ const result=dayResult?.date===selected?dayResult:null;
+ const detail=result?.detail;
+ const error=(useEmbeddedWeek?"":weekError)||result?.error;
  useEffect(()=>{
-  let active=true;setWeekLoading(true);
+  if(useEmbeddedWeek){setWeekLoading(false);return}
+  let active=true;setWeekLoading(true);setWeekError("");
   api<Overview>("/stats/overview"+(weekEnd?"?end="+weekEnd:"")).then(v=>{
-   if(active){setOverview(v);setSelected(d=>v.days.some(day=>day.date===d)?d:(v.days.some(day=>day.date===v.today)?v.today:v.days[0].date));setError("");setWeekLoading(false)}
-  }).catch(e=>{if(active){setError(e.message);setWeekLoading(false)}});
+   if(active){setLoadedOverview(v);setWeekError("");setWeekLoading(false)}
+  }).catch(e=>{if(active){setWeekError(e.message);setWeekLoading(false)}});
   return()=>{active=false};
- },[refresh,weekEnd]);
+ },[refresh,useEmbeddedWeek,weekEnd]);
  const moveWeek=(direction:number)=>{
   if(!overview||weekLoading)return;
   const next=shiftDay(overview.days[0].date,direction*7);
-  setWeekEnd(next>=overview.today?"":next);
+  const end=next>=overview.today?"":next;
+  if(end===weekEnd)return;
+  setWeekEnd(end);
  };
- useEffect(()=>{if(!selected)return;let active=true;setDetail(null);api<Detail>("/stats/day/"+selected).then(v=>{if(active){setDetail(v);setError("")}}).catch(e=>active&&setError(e.message));return()=>{active=false}},[selected,refresh]);
+ useEffect(()=>{
+  if(!selected)return;
+  let active=true;
+  api<Detail>("/stats/day/"+selected).then(v=>{
+   if(active)setDayResult({date:selected,detail:v});
+  }).catch(e=>{
+   if(active)setDayResult({date:selected,error:e.message});
+  });
+  return()=>{active=false};
+ },[selected,refresh]);
  useEffect(()=>{const update=()=>setRefresh(x=>x+1);window.addEventListener("focus",update);const timer=setInterval(update,60000);return()=>{window.removeEventListener("focus",update);clearInterval(timer)}},[]);
- const day=overview?.days.find(d=>d.date===selected);
- const choose=(d:string,scroll=false)=>{if(Date.now()<suppressClickUntil.current)return;setSelected(d);if(scroll)window.scrollTo({top:0,behavior:"smooth"})};
+ const choose=(d:string,scroll=false)=>{if(Date.now()<suppressClickUntil.current)return;setSelectedDate(d);if(scroll)window.scrollTo({top:0,behavior:"smooth"})};
  const labels:Record<string,string>={BREAKFAST:"Frühstück",LUNCH:"Mittagessen",DINNER:"Abendessen",SNACK:"Snacks"};
- return <main className="geise"><div className="g-wrap">
- <header className="g-header"><div><h1><Dumbbell/> BodyDashboard</h1><p>Hallo {user?.name} · Dein Überblick{overview&&<span className="g-week-range"> · {fullDate(overview.days[6].date)} – {fullDate(overview.days[0].date)}</span>}</p></div><button aria-label="Abmelden" onClick={()=>void logout()}><LogOut size={19}/></button></header>
+ const Container=embedded?"section":"main";
+ const range=overview&&<span className="g-week-range">{fullDate(overview.days[6].date)} – {fullDate(overview.days[0].date)}</span>;
+ return <Container className={embedded?"geise geise-embedded":"geise"} aria-labelledby={embedded?"dashboard-day-title":undefined}><div className="g-wrap">
+ {embedded
+  ? <header className="g-header"><div><h2 id="dashboard-day-title">Tagessicht</h2><p>{range}</p></div></header>
+  : <header className="g-header"><div><h1><Dumbbell/> BodyDashboard</h1><p>Hallo {user?.name} · Dein Überblick{range&&<> · {range}</>}</p></div><button aria-label="Abmelden" onClick={()=>void logout()}><LogOut size={19}/></button></header>}
  {error&&<p role="alert">{error} <button onClick={()=>setRefresh(x=>x+1)}>Erneut laden</button></p>}
  {!overview&&<p role="status">Dashboard wird geladen …</p>}
  {overview&&<><div className="g-week-controls"><button aria-label="Vorherige Woche" disabled={weekLoading} onClick={()=>moveWeek(-1)}><ChevronLeft size={20}/></button><span>{weekLoading?"Woche wird geladen …":"Wischen, um die Woche zu wechseln"}</span><button aria-label="Nächste Woche" disabled={weekLoading||overview.days[0].date>=overview.today} onClick={()=>moveWeek(1)}><ChevronRight size={20}/></button></div><nav className="g-days" aria-label="Tag auswählen" aria-busy={weekLoading}
  onTouchStart={e=>{touch.current=e.touches.length===1?{x:e.touches[0].clientX,y:e.touches[0].clientY}:null}}
  onTouchCancel={()=>{touch.current=null}}
  onTouchEnd={e=>{const start=touch.current;touch.current=null;if(!start||!e.changedTouches.length)return;const dx=e.changedTouches[0].clientX-start.x,dy=e.changedTouches[0].clientY-start.y;if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5){suppressClickUntil.current=Date.now()+400;moveWeek(dx<0?1:-1)}}}>{[...overview.days].reverse().map(d=><button key={d.date} aria-pressed={selected===d.date} aria-label={date(d.date)+" auswählen"} onClick={()=>choose(d.date)}><span>{date(d.date,true)}</span>{detail?<Rings small values={d} goal={detail.goal}/>:<span>{date(d.date)}</span>}</button>)}</nav>
- {!detail&&<p role="status">Tagesdaten werden geladen …</p>}
+ {!result&&<p role="status">Tagesdaten werden geladen …</p>}
  {detail&&day&&<>
- <section className="g-card g-summary"><div className="g-ringbox"><Rings values={day} goal={detail.goal}/><div><b>{date(selected,true)}</b><small>{date(selected)}</small></div></div><div className="g-macros"><h2>Tagesziel</h2>{metrics.map(m=><div key={m.key}><span style={{color:m.color}}>●</span><span>{m.label}</span><strong>{n(day[m.key])} {m.unit}<small>/ {n(detail.goal[m.key])} {m.unit}</small></strong></div>)}</div></section>
+ <section className="g-card g-summary"><div className="g-ringbox"><Rings values={day} goal={detail.goal}/><div><b>{date(selected,true)}</b><small>{date(selected)}</small></div></div><div className="g-macros"><h2>Tagesziel</h2>{metrics.map(m=><div key={m.key}><span style={{color:m.color}}>●</span><span>{m.label}</span><strong>{formatNumber(day[m.key])} {m.unit}<small>/ {formatNumber(detail.goal[m.key])} {m.unit}</small></strong></div>)}</div></section>
  {detail.missingNutritionCount>0&&<p className="g-note">Supplement-Nährwerte teilweise unbekannt. Summen enthalten bekannte Werte.</p>}
+ {!embedded&&<>
  <section className="g-card g-supplements"><h2><Pill size={19}/> Supplements {selected===overview.today?"heute":"· "+date(selected)}</h2><div>{overview.supplements.map(s=><span key={s.id}><i className={day.supplements.some(e=>e.id===s.id&&e.count>0)?"on":""}/>{s.name}<span className="sr-only">{day.supplements.some(e=>e.id===s.id&&e.count>0)?" eingenommen":" nicht erfasst"}</span></span>)}</div></section>
  <section className="g-card"><h2><Scale size={19}/> Letzte Messwerte</h2><div className="g-measures">{([{label:"Gewicht",m:detail.latestMeasurements.weight,key:"weightKg",unit:"kg"},{label:"Körperfett",m:detail.latestMeasurements.bodyFat,key:"bodyFatPercent",unit:"%"}] as const).map(({label,m,key,unit})=><div key={key}><span>{label}</span><strong>{m?.[key]!=null?n(m[key]!):"–"} <small>{m?.[key]!=null?unit:""}</small></strong><small>{m?"Gemessen am "+date(m.date):"Noch kein Messwert"}</small></div>)}</div></section>
- <section className="g-card"><h2>Lebensmittel · {selected===overview.today?"Heute":date(selected)}</h2>{!detail.meals.some(m=>m.items.length)&&<p className="g-note">Für diesen Tag sind keine Lebensmittel erfasst.</p>}{detail.meals.filter(m=>m.items.length).map((meal,i)=><div key={i} className="g-meal"><div className="g-meal-heading"><h3>{labels[meal.type]||meal.type}</h3>{meal.totals&&<p className="g-meal-totals" aria-label={"Summen "+(labels[meal.type]||meal.type)}><span>{n(meal.totals.calories)} kcal</span><span>P {n(meal.totals.protein)} g</span><span>F {n(meal.totals.fat)} g</span><span>KH {n(meal.totals.carbs)} g</span></p>}</div><ul>{meal.items.map(item=><li key={item.id}><span>{item.name}</span><strong>{n(item.amount)} {item.unit}</strong></li>)}</ul></div>)}</section>
  </>}
- <section className="g-card g-history"><h2>{overview.days[0].date===overview.today?"Letzte 7 Tage":"Angezeigte Woche"}</h2><p className="g-note">Tag antippen, um die Lebensmittel anzusehen.</p>{[...overview.days].reverse().map(d=><button key={d.date} aria-pressed={selected===d.date} onClick={()=>choose(d.date,true)}><i className={d.activityCount?"on":""} aria-label={d.activityCount?"Sport erfasst":"Kein Sport erfasst"}/><b>{date(d.date,true)}<small>{date(d.date)}</small></b>{detail&&<Rings small values={d} goal={detail.goal}/>}<span>{d.hasNutrition?<><strong>{n(d.calories)} kcal</strong><small>P {n(d.protein)} g · F {n(d.fat)} g · KH {n(d.carbs)} g</small></>:"Keine Daten"}</span><span>›</span></button>)}</section>
+ <section className="g-card"><h2>{embedded?"Mahlzeiten":"Lebensmittel"} · {selected===overview.today?"Heute":date(selected)}</h2>{!detail.meals.some(m=>m.items.length)&&<p className="g-note">Für diesen Tag sind keine Lebensmittel erfasst.</p>}{detail.meals.filter(m=>m.items.length).map((meal,i)=><div key={i} className="g-meal"><div className="g-meal-heading"><h3>{labels[meal.type]||meal.type}</h3>{meal.totals&&<p className="g-meal-totals" aria-label={"Summen "+(labels[meal.type]||meal.type)}><span>{formatNumber(meal.totals.calories)} kcal</span><span>P {formatNumber(meal.totals.protein)} g</span><span>F {formatNumber(meal.totals.fat)} g</span><span>KH {formatNumber(meal.totals.carbs)} g</span></p>}</div><ul>{meal.items.map(item=><li key={item.id}><span>{item.name}</span><strong>{formatNumber(item.amount)} {item.unit}</strong></li>)}</ul></div>)}</section>
  </>}
- </div></main>;
+ {!embedded&&<section className="g-card g-history"><h2>{overview.days[0].date===overview.today?"Letzte 7 Tage":"Angezeigte Woche"}</h2><p className="g-note">Tag antippen, um die Lebensmittel anzusehen.</p>{[...overview.days].reverse().map(d=><button key={d.date} aria-pressed={selected===d.date} onClick={()=>choose(d.date,true)}><i className={d.activityCount?"on":""} aria-label={d.activityCount?"Sport erfasst":"Kein Sport erfasst"}/><b>{date(d.date,true)}<small>{date(d.date)}</small></b>{detail&&<Rings small values={d} goal={detail.goal}/>}<span>{d.hasNutrition?<><strong>{n(d.calories)} kcal</strong><small>P {n(d.protein)} g · F {n(d.fat)} g · KH {n(d.carbs)} g</small></>:"Keine Daten"}</span><span>›</span></button>)}</section>}
+ </>}
+ </div></Container>;
 }

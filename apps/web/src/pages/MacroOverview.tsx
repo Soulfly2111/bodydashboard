@@ -2,6 +2,9 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { CalendarDays, Dumbbell, Settings, Info, ArrowUpRight, Pill } from "lucide-react";
 import { api } from "../lib/api";
+import { useAuth } from "../hooks/useAuth";
+import { formatDashboardInteger, usesHeinerDashboard } from "../lib/dashboardDisplay";
+import { DailyDashboard } from "./GeiseDashboard";
 import "./overview.css";
 
 type Supplement = { id: string; name: string; color: string };
@@ -15,6 +18,9 @@ function Led({ color, active, label, dim = false }: { color: string; active: boo
   return <span role="img" aria-label={label} title={label} className={`macro-led ${active ? "lit" : ""} ${dim ? "dim" : ""}`} style={{ "--led": color } as CSSProperties} />;
 }
 export default function MacroOverview() {
+  const { user } = useAuth();
+  const heinerDashboard = usesHeinerDashboard(user?.id);
+  const formatNumber = heinerDashboard ? formatDashboardInteger : (value: number) => number.format(value);
   const [data, setData] = useState<Overview | null>(null);
   const [error, setError] = useState("");
   const [refresh, setRefresh] = useState(0);
@@ -27,7 +33,7 @@ export default function MacroOverview() {
     return () => { active = false; window.removeEventListener("focus", onFocus); clearInterval(timer); };
   }, [refresh]);
   function cells(row: Nutrition) {
-    return (["calories", "protein", "fat", "carbs"] as const).map(key => <td key={key}>{row.hasNutrition && row.knownNutrition[key] ? `${number.format(row[key])}${key === "calories" ? "" : " g"}` : "–"}</td>);
+    return (["calories", "protein", "fat", "carbs"] as const).map(key => <td key={key}>{row.hasNutrition && row.knownNutrition[key] ? `${formatNumber(row[key])}${key === "calories" ? "" : " g"}` : "–"}</td>);
   }
   return <div className="macro-overview">
     <header className="macro-brand"><div><Dumbbell aria-hidden="true" /><h1>Body<span>Dashboard</span></h1></div><Link to="/settings" aria-label="Einstellungen"><Settings /></Link><p>Makro-Übersicht</p></header>
@@ -46,8 +52,9 @@ export default function MacroOverview() {
       <div className="macro-legend"><span>Supplement-LEDs:</span>{data.supplements.map(s => <Link key={s.id} to={`/supplements?id=${s.id}`}><Led color={s.color} active label={s.name} />{s.name}</Link>)}</div>
       <p className="macro-caption">Punkt neben dem Datum: Sport / Aktivität erfasst</p>
       </section>
+      {heinerDashboard && <DailyDashboard embeddedOverview={data} formatNumber={formatNumber} />}
       <section className="macro-panel"><h2><CalendarDays /> Letzte 4 Wochen</h2><p className="macro-subtitle">Tagesdurchschnitt je 7-Tage-Zeitraum</p><div className="macro-table-scroll"><table className="macro-table weeks"><thead><tr><th>Zeitraum</th><th>Supplements</th><th>Kcal</th><th>P <small>(Protein)</small></th><th>F <small>(Fett)</small></th><th>KH</th><th>Ø Gewicht</th><th>Ø KFA</th></tr></thead><tbody>
-      {data.weeks.map((week, index) => <tr key={week.start} className={index === 0 ? "selected" : ""}><td>{shortDate(week.start)}–{shortDate(week.end)}</td><td><div className="macro-week-leds">{data.supplements.map(s => { const days = week.supplements.find(v => v.id === s.id)?.days ?? 0; return <span key={s.id} title={`${s.name}: ${days} von 7 Tagen`}><Led color={s.color} active={days > 0} dim={days < 7} label={`${s.name}: ${days}/7 Tage`} /><small>{days}/7</small></span>; })}</div></td>{cells(week)}<td>{week.weightKg === null ? "–" : `${number.format(week.weightKg)} kg`}</td><td>{week.bodyFatPercent === null ? "–" : `${number.format(week.bodyFatPercent)} %`}</td></tr>)}
+      {data.weeks.map((week, index) => <tr key={week.start} className={index === 0 ? "selected" : ""}><td>{shortDate(week.start)}–{shortDate(week.end)}</td><td><div className="macro-week-leds">{data.supplements.map(s => { const days = week.supplements.find(v => v.id === s.id)?.days ?? 0; return <span key={s.id} title={`${s.name}: ${days} von 7 Tagen`}><Led color={s.color} active={days > 0} dim={days < 7} label={`${s.name}: ${days}/7 Tage`} /><small>{days}/7</small></span>; })}</div></td>{cells(week)}<td>{week.weightKg === null ? "–" : `${formatNumber(week.weightKg)} kg`}</td><td>{week.bodyFatPercent === null ? "–" : `${formatNumber(week.bodyFatPercent)} %`}</td></tr>)}
       </tbody></table></div><p className="macro-note"><Info size={17} /> Makro-Ø inkl. Tage ohne Erfassung · Gewicht/KFA nur aus Messtagen</p>
       {data.weeks.some(w => w.missingNutritionCount > 0) && <p className="macro-note">Unvollständige Supplement-Nährwerte in den Zeiträumen – bekannte Beiträge sind eingerechnet.</p>}
       </section>

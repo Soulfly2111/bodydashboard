@@ -25,8 +25,57 @@ test("default overview renders periods, accessible activity lights and preserved
   await expect(page.getByRole("img", { name: "1 Aktivitäten erfasst" }).first()).toBeVisible();
   await expect(page.getByText("13.11.–19.11.")).toBeVisible();
   await expect(page.getByRole("link", { name: /Detailansicht/ })).toHaveAttribute("href", "/dashboard-details");
+  await expect(page.getByRole("heading", { name: "Tagessicht" })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: info.outputPath("overview.png"), fullPage: true });
+});
+
+test("Heiner can browse dates and see rounded daily meals in the overview", async ({ page }, info) => {
+  await page.addInitScript(() => localStorage.setItem("macroflow.user", JSON.stringify({
+    id: "cmr2ikkrx0000djmowa316dh5", name: "Heiner", role: "ADMIN"
+  })));
+  await page.route("**/api/stats/overview?end=*", route => {
+    const end = new URL(route.request().url()).searchParams.get("end")!;
+    const days = data.days.map((day, index) => {
+      const date = new Date(end + "T12:00:00Z");
+      date.setUTCDate(date.getUTCDate() - index);
+      return { ...day, date: date.toISOString().slice(0, 10) };
+    });
+    return route.fulfill({ json: { ...data, days } });
+  });
+  await page.route("**/api/stats/day/*", route => {
+    const names: Record<string, string> = { "19": "Apfel", "18": "Banane" };
+    const name = names[route.request().url().slice(-2)];
+    return route.fulfill({ json: {
+      goal: { calories: 2000, protein: 150, fat: 70, carbs: 200 },
+      missingNutritionCount: 0,
+      meals: name ? [{
+        type: "BREAKFAST",
+        totals: { calories: 230.1, protein: 10.2, fat: 6.7, carbs: 31.4 },
+        items: [{ id: "fruit", name, amount: 125.4, unit: "g" }]
+      }] : []
+    } });
+  });
+  await page.goto("/");
+  const daily = page.getByRole("region", { name: "Tagessicht" });
+  const days = daily.getByRole("navigation", { name: "Tag auswählen" });
+  await expect(days.getByRole("button")).toHaveCount(7);
+  await expect(days.getByRole("button", { name: "19.11. auswählen" })).toHaveAttribute("aria-pressed", "true");
+  await expect(daily.getByRole("heading", { name: "Mahlzeiten · Heute" })).toBeVisible();
+  await expect(daily.getByLabel("Summen Frühstück")).toHaveText("231 kcalP 11 gF 7 gKH 32 g");
+  await expect(daily.getByText("126 g", { exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "2.199", exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("cell", { name: "94 kg", exact: true })).toBeVisible();
+  await days.getByRole("button", { name: "18.11. auswählen" }).click();
+  await expect(daily.getByText("Banane", { exact: true })).toBeVisible();
+  await expect(daily.getByText("Apfel", { exact: true })).toHaveCount(0);
+  await daily.getByRole("button", { name: "Vorherige Woche" }).click();
+  await expect(days.getByRole("button", { name: "12.11. auswählen" })).toHaveAttribute("aria-pressed", "true");
+  await expect(daily.getByText("Für diesen Tag sind keine Lebensmittel erfasst.")).toBeVisible();
+  await daily.getByRole("button", { name: "Nächste Woche" }).click();
+  await expect(days.getByRole("button", { name: "19.11. auswählen" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await daily.screenshot({ path: info.outputPath("heiner-day.png") });
 });
 
 test("supplement form preserves unknown nutrition and saves a product", async ({ page }) => {

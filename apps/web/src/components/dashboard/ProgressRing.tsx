@@ -1,4 +1,10 @@
-export function ProgressRing({ label, value, goal, color = "#26A69A" }: { label: string; value: number; goal: number; color?: string }) {
+export function ProgressRing({ label, value, goal, color = "#26A69A", formatNumber }: {
+  label: string;
+  value: number;
+  goal: number;
+  color?: string;
+  formatNumber?: (value: number) => string;
+}) {
   const pct = Math.min(100, goal ? (value / goal) * 100 : 0);
   const radius = 38;
   const circumference = 2 * Math.PI * radius;
@@ -19,13 +25,13 @@ export function ProgressRing({ label, value, goal, color = "#26A69A" }: { label:
           transform="rotate(-90 48 48)"
         />
         <text x="48" y="53" textAnchor="middle" className="fill-ink text-sm font-bold dark:fill-white">
-          {Math.round(pct)}%
+          {formatNumber?.(pct) ?? Math.round(pct)}%
         </text>
       </svg>
       <div className="min-w-0">
         <p className="truncate text-sm text-slate-500 dark:text-slate-400" title={label}>{label}</p>
-        <p className="whitespace-nowrap text-lg font-bold leading-tight">{Math.round(value)}</p>
-        <p className="whitespace-nowrap text-lg font-bold leading-tight text-slate-900 dark:text-white">/ {goal}</p>
+        <p className="whitespace-nowrap text-lg font-bold leading-tight">{formatNumber?.(value) ?? Math.round(value)}</p>
+        <p className="whitespace-nowrap text-lg font-bold leading-tight text-slate-900 dark:text-white">/ {formatNumber?.(goal) ?? goal}</p>
       </div>
     </div>
   );
