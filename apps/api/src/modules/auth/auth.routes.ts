@@ -31,7 +31,7 @@ authRouter.post(
   asyncHandler(async (req, res) => {
     const body = z.object({
       email: z.string().min(2),
-      password: z.string().min(8),
+      password: z.string().min(1),
       rememberMe: z.boolean().default(false)
     }).parse(req.body);
     try {
