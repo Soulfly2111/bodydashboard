@@ -1,12 +1,9 @@
 import bcrypt from "bcryptjs";
-import { addMinutes } from "date-fns";
 import { prisma } from "../../config/prisma.js";
 import { signAccessToken } from "../../middleware/auth.js";
 import { AuditLogService } from "./AuditLogService.js";
 import { SessionService } from "./SessionService.js";
 import { UserService } from "./UserService.js";
-
-const maxFailedAttempts = 5;
 
 export class AuthService {
   private sessions = new SessionService();
@@ -25,18 +22,9 @@ export class AuthService {
     });
     if (!user) throw new Error("Invalid credentials");
     if (user.status !== "ACTIVE") throw new Error("Account is disabled");
-    if (user.lockedUntil && user.lockedUntil > new Date()) throw new Error("Account is temporarily locked");
 
     const valid = await bcrypt.compare(input.password, user.passwordHash);
     if (!valid) {
-      const failedLoginAttempts = user.failedLoginAttempts + 1;
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          failedLoginAttempts,
-          lockedUntil: failedLoginAttempts >= maxFailedAttempts ? addMinutes(new Date(), 15) : null
-        }
-      });
       await this.audit.log({ userId: user.id, action: "auth.login_failed", ipAddress: input.ipAddress, userAgent: input.userAgent });
       throw new Error("Invalid credentials");
     }
