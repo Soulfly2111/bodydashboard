@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env.js";
-import { IntegrationApiKeyService } from "../services/integrations/IntegrationApiKeyService.js";
+import { IntegrationApiKeyService, IntegrationScopes } from "../services/integrations/IntegrationApiKeyService.js";
 import { PermissionService } from "../services/security/PermissionService.js";
 import type { Permission } from "../services/security/roles.js";
 
@@ -29,7 +29,16 @@ export function signAccessToken(user: AuthUser) {
 
 export const signToken = signAccessToken;
 
-export async function requireAuth(req: Request, res: Response, next: NextFunction) {
+export const requireAuth = authenticate(false);
+export const requireMealPlannerAuth = authenticate(true);
+
+function authenticate(allowMealPlannerKey: boolean) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    await authenticateRequest(req, res, next, allowMealPlannerKey);
+  };
+}
+
+async function authenticateRequest(req: Request, res: Response, next: NextFunction, allowMealPlannerKey: boolean) {
   const token = readBearerToken(req);
   if (!token) {
     res.status(401).json({ error: "Authentication required" });
@@ -49,6 +58,11 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       const integration = await integrationKeys.authenticate(token);
       if (!integration) {
         res.status(401).json({ error: "Invalid or expired token" });
+        return;
+      }
+      const plannerOnly = integration.scopes.length > 0 && integration.scopes.every((scope) => scope === IntegrationScopes.MEAL_PLANNER_READ || scope === IntegrationScopes.MEAL_PLANNER_WRITE);
+      if (plannerOnly && !allowMealPlannerKey) {
+        res.status(403).json({ error: "Meal-planner integration key is limited to meal-planner endpoints" });
         return;
       }
       if (integration.user.status && integration.user.status !== "ACTIVE") {

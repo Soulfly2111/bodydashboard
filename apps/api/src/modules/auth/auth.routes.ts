@@ -2,7 +2,7 @@ import { Router } from "express";
 import type { Request } from "express";
 import { z } from "zod";
 import { prisma } from "../../config/prisma.js";
-import { requireAuth } from "../../middleware/auth.js";
+import { requireAuth, requireMealPlannerAuth } from "../../middleware/auth.js";
 import { AuthService } from "../../services/security/AuthService.js";
 import { UserService } from "../../services/security/UserService.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
@@ -75,7 +75,7 @@ authRouter.post(
 
 authRouter.get(
   "/me",
-  requireAuth,
+  requireMealPlannerAuth,
   asyncHandler(async (req, res) => {
     const user = await prisma.user.findUnique({ where: { id: req.user!.id }, select: users.publicSelect() });
     res.json(user);

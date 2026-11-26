@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "../../config/prisma.js";
 import { requireAuth } from "../../middleware/auth.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
+import { fail } from "../mealPlanner/recipes.js";
 import { totalsForItems } from "../../utils/nutrition.js";
 
 export const mealsRouter = Router();
@@ -42,6 +43,8 @@ mealsRouter.post(
   "/items",
   asyncHandler(async (req, res) => {
     const body = itemSchema.parse(req.body);
+    const food = await prisma.food.findFirst({ where: { id: body.foodId, OR: [{ userId: req.user!.id }, { isPublic: true }], source: { not: "recipe_consumption" } } });
+    if (!food) throw fail(404, "Lebensmittel nicht gefunden.");
     const meal = await prisma.meal.upsert({
       where: {
         userId_date_type: { userId: req.user!.id, date: startOfDay(body.date), type: body.type }
@@ -68,10 +71,13 @@ mealsRouter.put(
   "/items/:id",
   asyncHandler(async (req, res) => {
     const body = itemUpdateSchema.parse(req.body);
+    const existing = await prisma.mealItem.findFirst({ where: { id: req.params.id, meal: { userId: req.user!.id } }, include: { food: true } });
+    if (!existing) throw fail(404, "Tagebucheintrag nicht gefunden.");
+    if (existing.food.source === "recipe_consumption") throw fail(409, "Bitte die Rezeptportion entfernen und erneut erfassen.");
     if (body.foodId) {
-      await prisma.food.findFirstOrThrow({ where: { id: body.foodId, OR: [{ userId: req.user!.id }, { isPublic: true }] } });
+      const food = await prisma.food.findFirst({ where: { id: body.foodId, OR: [{ userId: req.user!.id }, { isPublic: true }], source: { not: "recipe_consumption" } } });
+      if (!food) throw fail(404, "Lebensmittel nicht gefunden.");
     }
-    const existing = await prisma.mealItem.findFirstOrThrow({ where: { id: req.params.id, meal: { userId: req.user!.id } } });
     const item = await prisma.mealItem.update({
       where: { id: existing.id },
       data: body,

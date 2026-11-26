@@ -9,7 +9,10 @@ import test from "node:test";
 const expectedTools = ["bd_status", "food_search", "food_upsert", "meal_log",
   "meal_add_item", "meal_get_day", "meal_update_item", "meal_delete_item",
   "off_search", "off_import", "water_log", "weight_log", "activity_log",
-  "stats_day", "stats_week", "supplement_list", "supplement_get", "supplement_log", "supplement_update_entry", "supplement_delete_entry"].sort();
+  "stats_day", "stats_week", "supplement_list", "supplement_get", "supplement_log", "supplement_update_entry", "supplement_delete_entry",
+  "generate_meal_plan", "get_meal_plan", "replace_meal", "approve_meal_plan", "get_recipe", "search_recipes",
+  "save_favorite_recipe", "rate_recipe", "get_meal_history", "prepare_picnic_cart", "get_shopping_status",
+  "log_recipe_consumption", "get_meal_preferences", "update_meal_preferences"].sort();
 
 for (const keyOnly of [false, true]) test(`HTTP MCP ${keyOnly ? "API-key-only" : "JWT"} initializes, lists tools and routes authenticated calls to a mock API`, { timeout: 20000 }, async (t) => {
   const requests = [];
@@ -23,6 +26,8 @@ for (const keyOnly of [false, true]) test(`HTTP MCP ${keyOnly ? "API-key-only" :
       "/api/auth/login": { accessToken: "test-access-token", refreshToken: "test-refresh-token" },
       "/api/auth/me": { name: "Test", email: "test@example.invalid", role: "USER" },
       "/api/integrations/openclaw/water": { ok: true },
+      "/api/meal-planner/plans/2026-11-30": { id: "plan" },
+      "/api/meal-planner/consumptions": { id: "entry" },
     };
     res.statusCode = responses[req.url] ? 200 : 404;
     res.end(JSON.stringify(responses[req.url] ?? { error: "Unexpected mock request" }));
@@ -85,6 +90,15 @@ for (const keyOnly of [false, true]) test(`HTTP MCP ${keyOnly ? "API-key-only" :
   const write = requests.find(r => r.path === "/api/integrations/openclaw/water");
   assert.equal(write.headers["x-api-key"], "test-api-key");
   assert.deepEqual(write.body, { amountMl: 250, date: "2026-11-19" });
+  const plan = await rpc("tools/call", { name: "get_meal_plan", arguments: { weekStart: "2026-11-30" } });
+  assert.deepEqual(JSON.parse(plan.content[0].text), { id: "plan" });
+  const intake = { dishId: "dish", portions: 0.5, date: "2026-11-30", type: "DINNER", requestKey: "5bb879dd-b6c2-481b-a600-e304c933918f" };
+  const logged = await rpc("tools/call", { name: "log_recipe_consumption", arguments: intake });
+  assert.deepEqual(JSON.parse(logged.content[0].text), { id: "entry" });
+  const consumption = requests.find(r => r.path === "/api/meal-planner/consumptions");
+  assert.equal(consumption.headers["x-api-key"], "test-api-key");
+  assert.equal(consumption.headers.authorization, undefined);
+  assert.deepEqual(consumption.body, intake);
   const count = requests.length;
   const invalid = await rpc("tools/call", { name: "water_log", arguments: { amountMl: -1 } });
   assert.equal(invalid.isError, true);

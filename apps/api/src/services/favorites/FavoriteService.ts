@@ -10,7 +10,7 @@ export class FavoriteService {
     const foodIds = favorites.filter((favorite) => favorite.type === "FOOD").map((favorite) => favorite.targetId);
     if (!foodIds.length) return [];
     return prisma.food.findMany({
-      where: { id: { in: foodIds }, OR: [{ userId }, { isPublic: true }] },
+      where: { id: { in: foodIds }, OR: [{ userId }, { isPublic: true }], source: { not: "recipe_consumption" } },
       orderBy: { name: "asc" }
     });
   }

@@ -8,6 +8,7 @@ export class DefaultFoodMatchingService implements FoodMatchingServiceContract {
   async match(userId: string, item: RecognizedFoodDraft): Promise<RecognizedFoodDraft> {
     const local = await prisma.food.findFirst({
       where: {
+        source: { not: "recipe_consumption" },
         OR: [
           { userId },
           { isPublic: true }

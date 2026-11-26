@@ -16,6 +16,7 @@
  */
 
 import express from "express";
+import { registerMealPlannerTools } from "./meal-planner.js";
 import { registerSupplementTools } from "./supplements.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -392,6 +393,7 @@ function buildServer() {
   );
 
   registerSupplementTools(server, api, requireKey);
+  registerMealPlannerTools(server, api, requireKey);
   return server;
 }
 

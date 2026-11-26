@@ -25,6 +25,7 @@ const pageOptions = [
   { id: "dashboard", label: "Dashboard", icon: Home, locked: true },
   { id: "foods", label: "Lebensmittel", icon: Apple },
   { id: "meals", label: "Mahlzeiten", icon: Soup },
+  { id: "mealPlanner", label: "Essensplanung", icon: CalendarDays },
   { id: "activities", label: "Aktivitäten", icon: Activity },
   { id: "bodyProgress", label: "Körperfortschritt", icon: Images },
   { id: "aiMeals", label: "Foto-KI", icon: Camera },

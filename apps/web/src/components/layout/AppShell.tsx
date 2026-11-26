@@ -10,6 +10,7 @@ const nav = [
   { id: "supplements", to: "/supplements", label: "Supplements", icon: Pill, alwaysVisible: true },
   { id: "foods", to: "/foods", label: "Lebensmittel", icon: Apple },
   { id: "meals", to: "/meals", label: "Mahlzeiten", icon: Soup },
+  { id: "mealPlanner", to: "/meal-planner", label: "Essensplanung", icon: CalendarDays },
   { id: "activities", to: "/activities", label: "Aktivitäten", icon: Activity },
   { id: "bodyProgress", to: "/body-progress", label: "Körperfortschritt", icon: Images },
   { id: "aiMeals", to: "/ai-meals", label: "Foto-KI", icon: Camera },

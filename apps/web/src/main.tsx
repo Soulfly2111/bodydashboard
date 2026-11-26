@@ -11,6 +11,7 @@ const MacroOverview = lazy(() => import("./pages/MacroOverview"));
 const Supplements = lazy(() => import("./pages/Supplements"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Foods = lazy(() => import("./pages/Foods"));
+const MealPlanner = lazy(() => import("./pages/MealPlanner"));
 const Meals = lazy(() => import("./pages/Meals"));
 const Activities = lazy(() => import("./pages/Activities"));
 const BodyProgress = lazy(() => import("./pages/BodyProgress"));
@@ -36,6 +37,7 @@ const router = createBrowserRouter(
         { path: "supplements", element: <Supplements /> },
         { path: "foods", element: <Foods /> },
         { path: "meals", element: <Meals /> },
+        { path: "meal-planner", element: <MealPlanner /> },
         { path: "activities", element: <Activities /> },
         { path: "body-progress", element: <BodyProgress /> },
         { path: "ai-meals", element: <AiMeals /> },

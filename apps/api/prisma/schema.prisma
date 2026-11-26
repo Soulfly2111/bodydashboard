@@ -56,6 +56,9 @@ model User {
   integrationApiKeys IntegrationApiKey[]
   supplements Supplement[]
   supplementEntries SupplementEntry[]
+  mealHouseholdMembership MealHouseholdMember?
+  recipeFeedback RecipeFeedback[]
+  recipeConsumption RecipeConsumption[]
 
   @@index([role])
   @@index([status])
@@ -185,6 +188,7 @@ model MealItem {
   amount      Float
   unit        String   @default("g")
   servingName String?
+  recipeConsumption RecipeConsumption?
   createdAt   DateTime @default(now())
 }
 
@@ -199,6 +203,8 @@ model Recipe {
   source       String       @default("manual")
   externalId   String?
   items        RecipeItem[]
+  planning     RecipePlanning?
+  feedback     RecipeFeedback[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -645,4 +651,145 @@ model WhatsAppInboundMessage {
   @@index([externalUserId])
   @@index([processingStatus])
   @@index([receivedAt])
+}
+
+model MealHousehold {
+  id           String   @id @default(cuid())
+  name         String
+  servings     Int      @default(4)
+  dishCount    Int      @default(3)
+  preferences  String   @default("Überwiegend pflanzlich und proteinreich")
+  budgetCents  Int?
+  autoPlan     Boolean  @default(false)
+  autoPlanSince DateTime?
+  createdAt    DateTime @default(now())
+  members      MealHouseholdMember[]
+  invitations  MealHouseholdInvite[]
+  recipes      RecipePlanning[]
+  plans        WeeklyMealPlan[]
+  jobs         MealPlannerJob[]
+  pantry       MealPantryItem[]
+}
+
+model MealHouseholdMember {
+  userId      String @id
+  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  householdId String
+  household   MealHousehold @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  role        String
+  @@index([householdId])
+}
+
+model MealHouseholdInvite {
+  id          String @id @default(cuid())
+  householdId String
+  household   MealHousehold @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  tokenHash   String @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  @@index([householdId])
+}
+
+model RecipePlanning {
+  recipeId      String @id
+  recipe        Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  householdId  String?
+  household    MealHousehold? @relation(fields: [householdId], references: [id], onDelete: SetNull)
+  activeMinutes Int?
+  ingredients  String?
+  @@index([householdId])
+}
+
+model RecipeFeedback {
+  recipeId String
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  favorite Boolean @default(false)
+  rating   Int?
+  @@id([recipeId, userId])
+}
+
+model WeeklyMealPlan {
+  id           String @id @default(cuid())
+  householdId  String
+  household    MealHousehold @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  weekStart    String
+  status       String @default("draft")
+  version      Int @default(1)
+  approvedAt   DateTime?
+  createdAt    DateTime @default(now())
+  dishes       WeeklyMealDish[]
+  shopping     MealShoppingList?
+  @@unique([householdId, weekStart])
+}
+
+model WeeklyMealDish {
+  id         String @id @default(cuid())
+  planId     String
+  plan       WeeklyMealPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  position   Int
+  servings   Int
+  recipeId   String?
+  snapshot   String
+  images     String?
+  cookedAt   DateTime?
+  leftoverPortions Float @default(0)
+  leftoverUntil String?
+  @@unique([planId, position])
+}
+
+model RecipeConsumption {
+  id          String @id @default(cuid())
+  userId      String
+  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requestKey  String
+  requestBody String
+  mealItemId  String? @unique
+  mealItem    MealItem? @relation(fields: [mealItemId], references: [id], onDelete: SetNull)
+  date        String
+  portions    Float
+  snapshot    String
+  createdAt   DateTime @default(now())
+  @@unique([userId, requestKey])
+  @@index([userId, date])
+}
+
+model MealPlannerJob {
+  id           String @id @default(cuid())
+  householdId  String
+  household    MealHousehold @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  kind         String
+  jobKey       String
+  payload      String
+  state        String @default("queued")
+  attempts     Int @default(0)
+  leaseUntil   DateTime?
+  leaseToken   String?
+  error        String?
+  result       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@unique([householdId, kind, jobKey])
+  @@index([state, leaseUntil])
+}
+
+model MealShoppingList {
+  planId    String @id
+  plan      WeeklyMealPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  items     String
+  version   Int @default(1)
+  state     String @default("preview")
+  updatedAt DateTime @updatedAt
+}
+
+model MealPantryItem {
+  id           String @id @default(cuid())
+  householdId  String
+  household    MealHousehold @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  name         String
+  amount       Float
+  unit         String
+  expiresOn    String?
+  @@index([householdId])
 }

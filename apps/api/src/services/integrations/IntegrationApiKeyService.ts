@@ -13,6 +13,8 @@ export const IntegrationScopes = {
   ACTIVITIES_WRITE: "activities:write",
   BODY_PROGRESS_WRITE: "body-progress:write",
   RECIPES_WRITE: "recipes:write",
+  MEAL_PLANNER_READ: "meal-planner:read",
+  MEAL_PLANNER_WRITE: "meal-planner:write",
   FAVORITES_WRITE: "favorites:write",
   GOALS_WRITE: "goals:write",
   SETTINGS_WRITE: "settings:write"

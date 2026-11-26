@@ -91,6 +91,10 @@ In den Einstellungen können mehrere Quellen konfiguriert werden:
 
 Credentials werden serverseitig verschlüsselt gespeichert. Die Vorschau ruft Confluence-Seiten ab, extrahiert Tabellen, wendet gespeicherte Mappings an und zeigt Konflikte vor dem Import. Unterstützt sind Import-only, Upsert, optionales Löschen fehlender Datensätze und Änderungssync seit dem letzten Import.
 
+## Essensplanung
+
+[Meal Planner einrichten](docs/MEAL_PLANNER.md)
+
 ## PostgreSQL-Wechsel
 
 In `apps/api/prisma/schema.prisma` den Provider ändern:

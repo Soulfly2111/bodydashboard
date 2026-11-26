@@ -17,6 +17,7 @@ import { foodsRouter } from "./modules/foods/foods.routes.js";
 import { goalsRouter } from "./modules/goals/goals.routes.js";
 import { importRouter } from "./modules/import/import.routes.js";
 import { integrationsRouter } from "./modules/integrations/integrations.routes.js";
+import { mealPlannerRouter } from "./modules/mealPlanner/mealPlanner.routes.js";
 import { mealsRouter } from "./modules/meals/meals.routes.js";
 import { openFoodFactsRouter } from "./modules/openFoodFacts/openFoodFacts.routes.js";
 import { recipesRouter } from "./modules/recipes/recipes.routes.js";
@@ -45,6 +46,7 @@ export function createApp() {
   app.use("/api/foods", foodsRouter);
   app.use("/api/meals", mealsRouter);
   app.use("/api/recipes", recipesRouter);
+  app.use("/api/meal-planner", mealPlannerRouter);
   app.use("/api/weight", weightRouter);
   app.use("/api/water", waterRouter);
   app.use("/api/goals", goalsRouter);

@@ -75,7 +75,7 @@ export class ImportService {
         }
         const existing =
           item.recordType === "FOOD"
-            ? await prisma.food.findFirst({ where: { userId, name: String(item.data.name) } })
+            ? await prisma.food.findFirst({ where: { userId, name: String(item.data.name), source: { not: "recipe_consumption" } } })
             : await prisma.recipe.findFirst({ where: { userId, name: String(item.data.name) } });
         return existing ? { ...item, conflict: `Existing ${item.recordType.toLowerCase()} with same name` } : item;
       })

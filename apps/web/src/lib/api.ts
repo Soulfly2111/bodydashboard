@@ -24,6 +24,13 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   return parseResponse<T>(await request(path, options));
 }
 
+export async function apiBlob(path: string): Promise<Blob> {
+  let response = await request(path);
+  if (response.status === 401 && await refreshAccessToken()) response = await request(path);
+  if (!response.ok) throw new Error("Datei konnte nicht geladen werden.");
+  return response.blob();
+}
+
 async function request(path: string, options: RequestInit = {}) {
   const token = localStorage.getItem("macroflow.token");
   return fetch(`${API_URL}${path}`, {

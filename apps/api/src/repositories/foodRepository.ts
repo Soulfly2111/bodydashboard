@@ -4,6 +4,7 @@ import { prisma } from "../config/prisma.js";
 export class FoodRepository {
   search(userId: string, query?: string, take = 25, skip = 0) {
     const where: Prisma.FoodWhereInput = {
+      source: { not: "recipe_consumption" },
       OR: [{ userId }, { isPublic: true }],
       ...(query
         ? {
@@ -28,11 +29,12 @@ export class FoodRepository {
   }
 
   async update(id: string, userId: string, data: Prisma.FoodUpdateInput) {
-    await prisma.food.updateMany({ where: { id, userId }, data });
-    return prisma.food.findFirstOrThrow({ where: { id, userId } });
+    const where = { id, userId, source: { not: "recipe_consumption" } };
+    await prisma.food.updateMany({ where, data });
+    return prisma.food.findFirstOrThrow({ where });
   }
 
   delete(id: string, userId: string) {
-    return prisma.food.deleteMany({ where: { id, userId } });
+    return prisma.food.deleteMany({ where: { id, userId, source: { not: "recipe_consumption" } } });
   }
 }

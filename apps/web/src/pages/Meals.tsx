@@ -1,6 +1,6 @@
 import { CalendarDays, Check, ChevronLeft, ChevronRight, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -17,7 +17,7 @@ function toDateKey(date: Date) {
 const dateFormatter = new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" });
 
 type MealType = keyof typeof labels;
-type DayMeal = { id: string; type: MealType; items: Array<{ id: string; amount: number; food: Food }> };
+type DayMeal = { id: string; type: MealType; items: Array<{ id: string; amount: number; servingName?: string | null; food: Food }> };
 type MealTotals = { calories: number; protein: number; carbs: number; fat: number };
 
 function calculateTotals(items: DayMeal["items"] = []): MealTotals {
@@ -107,6 +107,7 @@ export default function Meals() {
             <div>
               <p className="text-xs uppercase tracking-wide text-slate-500">Mahlzeiten</p>
               <h2 className="text-lg font-bold">{selectedDateLabel}</h2>
+              <Link className="text-sm underline" to="/meal-planner">Essensplanung</Link>
             </div>
           </div>
 
@@ -189,9 +190,9 @@ export default function Meals() {
                         </div>
                       ) : (
                         <div className="flex min-w-0 items-center justify-between gap-3">
-                          <span>{item.food.name} · {item.amount} g · {Math.round(item.food.caloriesPer100g * item.amount / 100)} kcal</span>
+                          <span>{item.food.name} · {item.food.source === "recipe_consumption" ? item.servingName : item.amount + " g"} · {Math.round(item.food.caloriesPer100g * item.amount / 100)} kcal</span>
                           <div className="flex shrink-0 gap-2">
-                            <button aria-label="Bearbeiten" className="grid h-9 w-9 place-items-center rounded-lg hover:bg-white/70 dark:hover:bg-slate-700" onClick={() => setEditing({ id: item.id, foodId: item.food.id, amount: item.amount })}><Pencil size={16} /></button>
+                            {item.food.source !== "recipe_consumption" && <button aria-label="Bearbeiten" className="grid h-9 w-9 place-items-center rounded-lg hover:bg-white/70 dark:hover:bg-slate-700" onClick={() => setEditing({ id: item.id, foodId: item.food.id, amount: item.amount })}><Pencil size={16} /></button>}
                             <button aria-label="Löschen" className="grid h-9 w-9 place-items-center rounded-lg text-coral hover:bg-white/70 dark:hover:bg-slate-700" onClick={() => deleteItem(item.id)}><Trash2 size={16} /></button>
                           </div>
                         </div>

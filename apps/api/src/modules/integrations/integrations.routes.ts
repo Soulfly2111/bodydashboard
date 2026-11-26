@@ -7,6 +7,7 @@ import { requireAuth } from "../../middleware/auth.js";
 import { requireIntegrationAuth, requireIntegrationScope } from "../../middleware/integrationAuth.js";
 import { ActivityService } from "../../services/activities/ActivityService.js";
 import { IntegrationApiKeyService, IntegrationScopes } from "../../services/integrations/IntegrationApiKeyService.js";
+import { fail } from "../mealPlanner/recipes.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 
 export const integrationsRouter = Router();
@@ -240,7 +241,7 @@ async function upsertOpenClawFood(userId: string, body: z.infer<typeof foodSchem
 }
 
 async function createMealItem(userId: string, body: z.infer<typeof mealItemSchema>) {
-  const food = await prisma.food.findFirstOrThrow({ where: { id: body.foodId, OR: [{ userId }, { isPublic: true }] } });
+  const food = await prisma.food.findFirstOrThrow({ where: { id: body.foodId, OR: [{ userId }, { isPublic: true }], source: { not: "recipe_consumption" } } });
   const meal = await prisma.meal.upsert({
     where: {
       userId_date_type: { userId, date: startOfDay(body.date), type: body.type }
@@ -264,9 +265,10 @@ async function createMealItem(userId: string, body: z.infer<typeof mealItemSchem
 
 async function updateMealItem(userId: string, id: string, body: z.infer<typeof mealItemUpdateSchema>) {
   if (body.foodId) {
-    await prisma.food.findFirstOrThrow({ where: { id: body.foodId, OR: [{ userId }, { isPublic: true }] } });
+    await prisma.food.findFirstOrThrow({ where: { id: body.foodId, OR: [{ userId }, { isPublic: true }], source: { not: "recipe_consumption" } } });
   }
-  const existing = await prisma.mealItem.findFirstOrThrow({ where: { id, meal: { userId } } });
+  const existing = await prisma.mealItem.findFirstOrThrow({ where: { id, meal: { userId } }, include: { food: true } });
+  if (existing.food.source === "recipe_consumption") throw fail(409, "Bitte die Rezeptportion entfernen und erneut erfassen.");
   const item = await prisma.mealItem.update({
     where: { id: existing.id },
     data: body,
