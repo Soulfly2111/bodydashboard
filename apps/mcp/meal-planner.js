@@ -33,6 +33,19 @@ export function registerMealPlannerTools(server, api, requireKey) {
   }, ({ weekStart, ...body }) => api(plans(weekStart) + "/dish", { method: "PUT", body }));
   register("approve_meal_plan", "Gibt einen geprüften Wochenentwurf für den Haushalt frei.", { ...week, version },
     ({ weekStart, ...body }) => api(plans(weekStart) + "/approve", { method: "POST", body }));
+  server.registerTool("create_recipe", {
+    title: "Rezept im BodyDashboard speichern",
+    description: "Speichert ein neues Rezept im Rezeptbuch des verbundenen Kontos. Nutze dieses Werkzeug, wenn der Nutzer ein Rezept speichern möchte. Zutatenmengen gelten für alle angegebenen Portionen. foodId ist optional und darf nur aus der Lebensmittelsuche stammen.",
+    inputSchema: recipe.extend({
+      shared: z.boolean().default(false).describe("Nur auf ausdrücklichen Wunsch für den Haushalt freigeben.")
+    }).shape,
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
+  }, async (body) => {
+    requireKey("create_recipe");
+    const { id, name, servings, planning } = await api("/api/recipes", { method: "POST", body });
+    const result = { id, name, servings, shared: Boolean(planning?.householdId) };
+    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+  });
   register("get_recipe", "Liest ein sichtbares Rezept mit Kochschritten und Nährwerten.", { recipeId: id },
     ({ recipeId }) => api(recipes(recipeId)));
   register("search_recipes", "Durchsucht eigene und freigegebene Haushaltsrezepte.", { query: z.string().optional(), favorites: z.boolean().default(false) },

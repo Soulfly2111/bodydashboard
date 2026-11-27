@@ -101,7 +101,7 @@ for attempt in range(20):
         request = urllib.request.Request(url, data=payload, headers={'Content-Type':'application/json','Accept':'application/json, text/event-stream'})
         with urllib.request.urlopen(request, timeout=5) as response:
             data = json.load(response)
-        assert 'supplement_get' in {tool['name'] for tool in data['result']['tools']}
+        assert {'supplement_get', 'create_recipe'} <= {tool['name'] for tool in data['result']['tools']}
         break
     except Exception:
         if attempt == 19:

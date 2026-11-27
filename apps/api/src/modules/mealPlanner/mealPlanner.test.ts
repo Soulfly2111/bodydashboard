@@ -122,7 +122,8 @@ describe("meal planner on an upgraded SQLite database", () => {
   });
 
   it("validates plan visibility, recipe sharing and optimistic version checks", async () => {
-    const created = await requestApi().post("/api/recipes").set(owner).send(draft()).expect(201);
+    await requestApi().post("/api/recipes").set("x-api-key", readKey).send(draft()).expect(403);
+    const created = await requestApi().post("/api/recipes").set("x-api-key", writeKey).send(draft()).expect(201);
     recipeId = created.body.id;
     const shared = await requestApi().get("/api/recipes/" + recipeId).set(member).expect(200);
     expect(shared.body.ingredients[0]).toMatchObject({ name: "Linsen", hasNutrition: true });

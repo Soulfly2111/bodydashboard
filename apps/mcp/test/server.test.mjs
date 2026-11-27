@@ -10,7 +10,7 @@ const expectedTools = ["bd_status", "food_search", "food_upsert", "meal_log",
   "meal_add_item", "meal_get_day", "meal_update_item", "meal_delete_item",
   "off_search", "off_import", "water_log", "weight_log", "activity_log",
   "stats_day", "stats_week", "supplement_list", "supplement_get", "supplement_log", "supplement_update_entry", "supplement_delete_entry",
-  "generate_meal_plan", "get_meal_plan", "replace_meal", "approve_meal_plan", "get_recipe", "search_recipes",
+  "generate_meal_plan", "get_meal_plan", "replace_meal", "approve_meal_plan", "create_recipe", "get_recipe", "search_recipes",
   "save_favorite_recipe", "rate_recipe", "get_meal_history", "prepare_picnic_cart", "get_shopping_status",
   "log_recipe_consumption", "get_meal_preferences", "update_meal_preferences"].sort();
 
@@ -29,6 +29,11 @@ for (const keyOnly of [false, true]) test(`HTTP MCP ${keyOnly ? "API-key-only" :
       "/api/meal-planner/plans/2026-11-30": { id: "plan" },
       "/api/meal-planner/consumptions": { id: "entry" },
     };
+    if (req.url === "/api/recipes" && req.method === "POST") {
+      res.statusCode = 201;
+      res.end(JSON.stringify({ id: "recipe", name: "Linsen mit Gemüse", servings: 4, planning: null }));
+      return;
+    }
     res.statusCode = responses[req.url] ? 200 : 404;
     res.end(JSON.stringify(responses[req.url] ?? { error: "Unexpected mock request" }));
   });
@@ -99,6 +104,12 @@ for (const keyOnly of [false, true]) test(`HTTP MCP ${keyOnly ? "API-key-only" :
   assert.equal(consumption.headers["x-api-key"], "test-api-key");
   assert.equal(consumption.headers.authorization, undefined);
   assert.deepEqual(consumption.body, intake);
+  const recipe = { name: "Linsen mit Gemüse", servings: 4, instructions: "Linsen garen.", ingredients: [{ name: "Linsen", amount: 250, unit: "g" }] };
+  const created = await rpc("tools/call", { name: "create_recipe", arguments: recipe });
+  assert.deepEqual(JSON.parse(created.content[0].text), { id: "recipe", name: recipe.name, servings: 4, shared: false });
+  const booking = requests.find(r => r.path === "/api/recipes");
+  assert.equal(booking.headers["x-api-key"], "test-api-key");
+  assert.deepEqual(booking.body, { ...recipe, shared: false });
   const count = requests.length;
   const invalid = await rpc("tools/call", { name: "water_log", arguments: { amountMl: -1 } });
   assert.equal(invalid.isError, true);

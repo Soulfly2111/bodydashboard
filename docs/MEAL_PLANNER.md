@@ -18,3 +18,5 @@ Für den Livebetrieb zunächst Open WebUI mit einem Testhaushalt prüfen. In die
 ## MCP
 
 Für Meal-Planner-Tools nutzt der bestehende MCP-Server den kontogebundenen `BODYDASH_API_KEY`. `meal-planner:read` erlaubt Abrufe. `meal-planner:write` erlaubt Änderungen gemäß Haushaltsrolle. Beide Scopes können für einen Client kombiniert werden. Die Verzehrerfassung erwartet `requestKey` als UUID. Bei Wiederholung desselben Aufrufs dieselbe UUID verwenden. Die Warenkorbübertragung wird in der PWA bestätigt.
+
+Mit `create_recipe` kann ein MCP-Client Rezepte direkt im Rezeptbuch speichern. Neue Rezepte bleiben standardmäßig privat. Für eine Freigabe im Haushalt dient `shared: true`.
